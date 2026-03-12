@@ -1,166 +1,225 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 const API = "/api";
 
-const INDIAN_STATES = [
-    "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
-    "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand",
-    "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur",
-    "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab",
-    "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura",
-    "Uttar Pradesh", "Uttarakhand", "West Bengal",
-    "Delhi", "Chandigarh", "Puducherry", "Jammu and Kashmir", "Ladakh",
-];
-
 const STATUS_LABELS: Record<string, string> = {
     submitted: "Submitted", under_review: "Under Review",
     in_progress: "In Progress", resolved: "Resolved", rejected: "Rejected",
+};
+const STATUS_ICONS: Record<string, string> = {
+    submitted: "📩", under_review: "🔍", in_progress: "🔧", resolved: "✅", rejected: "❌",
 };
 
 export default function AdminComplaintsPage() {
     const router = useRouter();
     const [complaints, setComplaints] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [filterState, setFilterState] = useState("");
-    const [filterStatus, setFilterStatus] = useState("");
+    const [error, setError] = useState("");
+    const [user, setUser] = useState<any>(null);
+    const [departments, setDepartments] = useState<any[]>([]);
+
+    // Edit modal state
+    const [editing, setEditing] = useState<any>(null);
+    const [newStatus, setNewStatus] = useState("");
+    const [newDept, setNewDept] = useState("");
+    const [note, setNote] = useState("");
+    const [saving, setSaving] = useState(false);
+    
+    const [deletingId, setDeletingId] = useState<string | null>(null);
 
     useEffect(() => {
-        let u: any = null;
-        try {
-            u = JSON.parse(localStorage.getItem("govtech_user") || "null");
-            if (!u || u.role !== "admin") { router.push("/login"); return; }
-        } catch { router.push("/login"); return; }
-
-        const hdrs: Record<string, string> = { "X-User-Email": u.email };
-
-        const load = async () => {
+        const fetchInitial = async () => {
             try {
-                const res = await fetch(`${API}/complaints`, { headers: hdrs });
+                const uStr = localStorage.getItem("govtech_user");
+                if (!uStr) { router.push("/login"); return; }
+                const u = JSON.parse(uStr);
+                setUser(u);
+
+                if (u.role !== "admin") {
+                    router.push("/login");
+                    return;
+                }
+
+                // Fetch complaints
+                const res = await fetch(`${API}/complaints?limit=100`, { headers: { "X-User-Email": u.email } });
+                if (!res.ok) throw new Error("Failed to load complaints");
                 const data = await res.json();
                 setComplaints(data.complaints || []);
-            } catch (err) {
-                console.error("Failed to fetch complaints", err);
+
+                // Fetch departments
+                const dRes = await fetch(`${API}/auth/departments`);
+                if (dRes.ok) {
+                    const dData = await dRes.json();
+                    setDepartments(dData.departments || []);
+                }
+            } catch (err: unknown) {
+                setError(err instanceof Error ? err.message : "Error loading data");
             } finally {
                 setLoading(false);
             }
         };
-        load();
-    }, []);
+        fetchInitial();
+    }, [router]);
 
-    const filtered = complaints.filter(c => {
-        if (filterState && c.state !== filterState) return false;
-        if (filterStatus && c.status !== filterStatus) return false;
-        return true;
-    });
+    const handleSave = async () => {
+        if (!editing || !user) return;
+        setSaving(true);
+        try {
+            // Update Status if changed
+            if (newStatus && newStatus !== editing.status) {
+                const sRes = await fetch(`${API}/complaints/${editing.id}/status`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json", "X-User-Email": user.email },
+                    body: JSON.stringify({ status: newStatus, note: note || `Admin updated status to ${newStatus}`, officer_email: "ADMIN" })
+                });
+                if (!sRes.ok) { const err = await sRes.json(); throw new Error(err.detail); }
+            }
 
-    if (loading) {
-        return (
-            <main className="page-container" style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
-                <div className="spinner" />
-            </main>
-        );
-    }
+            // Assign Dept if changed
+            if (newDept && newDept !== editing.department) {
+                const aRes = await fetch(`${API}/complaints/${editing.id}/assign`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json", "X-User-Email": user.email },
+                    body: JSON.stringify({ department: newDept, officer_email: "ADMIN" })
+                });
+                if (!aRes.ok) { const err = await aRes.json(); throw new Error(err.detail); }
+            }
+
+            // Refresh list
+            const res = await fetch(`${API}/complaints?limit=100`, { headers: { "X-User-Email": user.email } });
+            const data = await res.json();
+            setComplaints(data.complaints || []);
+            setEditing(null);
+        } catch (e: any) {
+            alert(`Error updating: ${e.message}`);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!confirm("Are you sure you want to completely delete this complaint? This cannot be undone.")) return;
+        setDeletingId(id);
+        try {
+            const res = await fetch(`${API}/complaints/${id}`, {
+                method: "DELETE",
+                headers: { "X-User-Email": user.email }
+            });
+            if (!res.ok) throw new Error("Failed to delete");
+            setComplaints(prev => prev.filter(c => c.id !== id));
+        } catch (e: any) {
+            alert(e.message);
+        } finally {
+            setDeletingId(null);
+        }
+    };
 
     return (
         <main className="page-container">
-            <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "40px 24px" }}>
-                <div style={{ marginBottom: "24px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
+            <div className="hero-bg" style={{ height: "250px" }} />
+            <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "40px 24px", position: "relative" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "32px" }}>
                     <div>
-                        <h1 style={{ fontFamily: "'Sora', sans-serif", fontSize: "26px", fontWeight: 700, marginBottom: "4px" }}>
-                            📋 All Complaints (Read-Only)
+                        <h1 style={{ fontFamily: "'Sora', sans-serif", fontSize: "28px", fontWeight: 800, marginBottom: "8px" }}>
+                            📋 Manage All Complaints
                         </h1>
-                        <p style={{ color: "var(--text-secondary)", fontSize: "14px" }}>
-                            Admin monitoring view — {filtered.length} of {complaints.length} complaints shown
-                        </p>
+                        <p style={{ color: "var(--text-secondary)" }}>Master control panel — Edit statuses, assign departments, and manage records.</p>
                     </div>
-                    <button className="btn-primary" onClick={() => router.push("/admin/dashboard")}>
-                        ← Dashboard
-                    </button>
+                    <Link href="/admin/dashboard" className="btn-secondary" style={{ fontSize: "14px", textDecoration: "none" }}>
+                        ← Back to Dashboard
+                    </Link>
                 </div>
 
-                {/* Filters */}
-                <div style={{ display: "flex", gap: "12px", marginBottom: "20px", flexWrap: "wrap" }}>
-                    <select className="input-field" value={filterState} onChange={e => setFilterState(e.target.value)}
-                        style={{ maxWidth: "220px" }}>
-                        <option value="">All States</option>
-                        {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                    <select className="input-field" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-                        style={{ maxWidth: "180px" }}>
-                        <option value="">All Statuses</option>
-                        {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                    </select>
-                    {(filterState || filterStatus) && (
-                        <button className="btn-secondary" onClick={() => { setFilterState(""); setFilterStatus(""); }}
-                            style={{ fontSize: "13px" }}>
-                            ✕ Clear Filters
-                        </button>
-                    )}
-                </div>
+                {error && <div className="alert-error" style={{ marginBottom: "20px" }}>{error}</div>}
 
-                <div className="glass-card" style={{ padding: "0", overflow: "hidden" }}>
-                    <div style={{ overflowX: "auto" }}>
-                        <table className="data-table">
-                            <thead>
+                {loading ? (
+                    <div style={{ textAlign: "center", padding: "60px" }}><div className="spinner" style={{ margin: "0 auto" }} /></div>
+                ) : (
+                    <div className="glass-card" style={{ padding: 0, overflow: "hidden" }}>
+                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px", textAlign: "left" }}>
+                            <thead style={{ background: "rgba(255,255,255,0.03)", borderBottom: "1px solid var(--border)" }}>
                                 <tr>
-                                    <th>ID</th>
-                                    <th>Title</th>
-                                    <th>State</th>
-                                    <th>Department</th>
-                                    <th>Status</th>
-                                    <th>Severity</th>
-                                    <th>Citizen</th>
-                                    <th>Submitted</th>
-                                    <th>View</th>
+                                    <th style={{ padding: "16px 20px", fontWeight: 600, color: "var(--text-secondary)" }}>ID / Details</th>
+                                    <th style={{ padding: "16px 20px", fontWeight: 600, color: "var(--text-secondary)" }}>Citizen</th>
+                                    <th style={{ padding: "16px 20px", fontWeight: 600, color: "var(--text-secondary)" }}>Status & Dept</th>
+                                    <th style={{ padding: "16px 20px", fontWeight: 600, color: "var(--text-secondary)", textAlign: "right" }}>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {filtered.map(c => (
-                                    <tr key={c.id}>
-                                        <td style={{ fontFamily: "monospace", fontSize: "11px", color: "var(--accent-orange)" }}>{c.id}</td>
-                                        <td style={{ fontWeight: 600, color: "var(--text-primary)", maxWidth: "200px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.title}</td>
-                                        <td style={{ fontSize: "12px" }}>{c.state || "—"}</td>
-                                        <td style={{ fontSize: "12px" }}>{c.department}</td>
-                                        <td>
-                                            <span className={`badge badge-${c.status}`} style={{ fontSize: "10px" }}>
-                                                {STATUS_LABELS[c.status] || c.status}
-                                            </span>
+                                {complaints.map((c, i) => (
+                                    <tr key={c.id} style={{ borderBottom: i === complaints.length - 1 ? "none" : "1px solid var(--border)", animation: `fadeInUp 0.3s ease-out ${i * 0.05}s both` }}>
+                                        <td style={{ padding: "16px 20px" }}>
+                                            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+                                                <Link href={`/track/${c.id}`} style={{ fontFamily: "monospace", fontSize: "12px", color: "var(--accent-orange)", fontWeight: 700, textDecoration: "none" }}>{c.id}</Link>
+                                                <span className={`badge badge-${c.severity}`} style={{ fontSize: "9px" }}>{c.severity}</span>
+                                                {c.sla_breached && <span style={{ fontSize: "9px", background: "rgba(239,68,68,0.1)", color: "#ef4444", padding: "2px 6px", borderRadius: "10px", fontWeight: 700 }}>⚠️ SLA</span>}
+                                            </div>
+                                            <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>{c.title}</div>
                                         </td>
-                                        <td>
-                                            <span className={`badge badge-${c.severity}`} style={{ fontSize: "10px" }}>
-                                                {c.severity}
-                                            </span>
+                                        <td style={{ padding: "16px 20px", color: "var(--text-secondary)" }}>{c.citizen_email}</td>
+                                        <td style={{ padding: "16px 20px" }}>
+                                            <div style={{ marginBottom: "4px" }}><span className={`badge badge-${c.status}`} style={{ fontSize: "10px" }}>{STATUS_ICONS[c.status]} {STATUS_LABELS[c.status] || c.status}</span></div>
+                                            <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>🏢 {c.department}</div>
                                         </td>
-                                        <td style={{ fontSize: "11px", color: "var(--text-secondary)" }}>{c.citizen_email}</td>
-                                        <td style={{ fontSize: "11px", color: "var(--text-muted)" }}>
-                                            {c.submitted_at ? new Date(c.submitted_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : "—"}
-                                        </td>
-                                        <td>
-                                            <Link href={`/track/${c.id}`} style={{ color: "var(--accent-orange)", textDecoration: "none", fontSize: "12px", fontWeight: 600 }}>
-                                                View →
-                                            </Link>
+                                        <td style={{ padding: "16px 20px", textAlign: "right" }}>
+                                            <button onClick={() => { setEditing(c); setNewStatus(c.status); setNewDept(c.department); setNote(""); }}
+                                                style={{ padding: "6px 12px", background: "rgba(96,165,250,0.1)", color: "#60a5fa", border: "1px solid rgba(96,165,250,0.2)", borderRadius: "6px", fontSize: "12px", cursor: "pointer", marginRight: "8px" }}>
+                                                ✏️ Edit
+                                            </button>
+                                            <button onClick={() => handleDelete(c.id)} disabled={deletingId === c.id}
+                                                style={{ padding: "6px 12px", background: "rgba(239,68,68,0.05)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.2)", borderRadius: "6px", fontSize: "12px", cursor: "pointer" }}>
+                                                {deletingId === c.id ? "..." : "🗑️"}
+                                            </button>
                                         </td>
                                     </tr>
                                 ))}
-                                {filtered.length === 0 && (
-                                    <tr>
-                                        <td colSpan={9} style={{ textAlign: "center", padding: "40px", color: "var(--text-muted)" }}>
-                                            No complaints match your filters.
-                                        </td>
-                                    </tr>
-                                )}
                             </tbody>
                         </table>
                     </div>
-                </div>
+                )}
 
-                {/* Read-only notice */}
-                <div style={{ marginTop: "16px", fontSize: "12px", color: "var(--text-muted)", textAlign: "center" }}>
-                    🔒 Admin view is read-only. Only officers can update complaint statuses.
-                </div>
+                {/* Edit Modal */}
+                {editing && (
+                    <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
+                        <div className="glass-card" style={{ width: "100%", maxWidth: "500px", background: "#0f1f3d", padding: "32px" }}>
+                            <h2 style={{ fontSize: "20px", marginBottom: "8px" }}>Edit Complaint</h2>
+                            <p style={{ fontFamily: "monospace", color: "var(--accent-orange)", marginBottom: "24px" }}>{editing.id}</p>
+
+                            <div style={{ marginBottom: "16px" }}>
+                                <label style={{ display: "block", fontSize: "12px", color: "var(--text-secondary)", marginBottom: "8px" }}>Status</label>
+                                <select className="input-field" value={newStatus} onChange={e => setNewStatus(e.target.value)} style={{ width: "100%" }}>
+                                    <option value="submitted">Submitted</option>
+                                    <option value="under_review">Under Review</option>
+                                    <option value="in_progress">In Progress</option>
+                                    <option value="resolved">Resolved</option>
+                                    <option value="rejected">Rejected</option>
+                                </select>
+                            </div>
+
+                            <div style={{ marginBottom: "16px" }}>
+                                <label style={{ display: "block", fontSize: "12px", color: "var(--text-secondary)", marginBottom: "8px" }}>Assign Department</label>
+                                <select className="input-field" value={newDept} onChange={e => setNewDept(e.target.value)} style={{ width: "100%" }}>
+                                    {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                                </select>
+                            </div>
+
+                            <div style={{ marginBottom: "24px" }}>
+                                <label style={{ display: "block", fontSize: "12px", color: "var(--text-secondary)", marginBottom: "8px" }}>Admin Note (Optional)</label>
+                                <textarea className="input-field" value={note} onChange={e => setNote(e.target.value)} placeholder="Reason for change..." style={{ width: "100%", minHeight: "80px", resize: "vertical" }} />
+                            </div>
+
+                            <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
+                                <button className="btn-secondary" onClick={() => setEditing(null)}>Cancel</button>
+                                <button className="btn-primary" onClick={handleSave} disabled={saving}>
+                                    {saving ? "Saving..." : "Save Changes"}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </main>
     );

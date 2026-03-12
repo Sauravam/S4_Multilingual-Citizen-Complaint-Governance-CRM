@@ -272,17 +272,17 @@ def escalate_complaint(complaint_id: str, body: EscalationRequest, user: dict = 
         "message": f"Complaint {complaint_id} has been escalated to CRITICAL priority."
     }
 
-# --- OFFICER ONLY: Update complaint status ---
+# --- OFFICER & ADMIN: Update complaint status ---
 @router.patch("/{complaint_id}/status")
-def update_status(complaint_id: str, body: StatusUpdate, user: dict = Depends(require_role(["officer"]))):
+def update_status(complaint_id: str, body: StatusUpdate, user: dict = Depends(require_role(["officer", "admin"]))):
     res = supabase.table("complaints").select("*").eq("id", complaint_id).execute()
     if not res.data or len(res.data) == 0:
         raise HTTPException(status_code=404, detail="Complaint not found")
 
     complaint = res.data[0]
 
-    # Officer can only update complaints in their department
-    if complaint.get("department") != user.get("department"):
+    # Officers can only update their own department; Admin can update anything
+    if user["role"] == "officer" and complaint.get("department") != user.get("department"):
         raise HTTPException(status_code=403, detail="This complaint is not assigned to your department.")
 
     valid_statuses = ["submitted", "under_review", "in_progress", "resolved", "rejected"]
@@ -313,9 +313,9 @@ def update_status(complaint_id: str, body: StatusUpdate, user: dict = Depends(re
 
     return update_res.data[0]
 
-# --- OFFICER ONLY: Assign complaint to department ---
+# --- OFFICER & ADMIN: Assign complaint to department ---
 @router.patch("/{complaint_id}/assign")
-def assign_complaint(complaint_id: str, body: AssignUpdate, user: dict = Depends(require_role(["officer"]))):
+def assign_complaint(complaint_id: str, body: AssignUpdate, user: dict = Depends(require_role(["officer", "admin"]))):
     res = supabase.table("complaints").select("*").eq("id", complaint_id).execute()
     if not res.data or len(res.data) == 0:
         raise HTTPException(status_code=404, detail="Complaint not found")
