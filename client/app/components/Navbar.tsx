@@ -2,16 +2,13 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-
-const NAV_LINKS = [
-    { href: "/", label: "Home", icon: "🏠" },
-    { href: "/submit", label: "Submit", icon: "📝" },
-    { href: "/track", label: "Track", icon: "🔍" },
-];
+import { useLanguage } from "../../context/LanguageContext";
+import { LanguageCode } from "../../utils/translations";
 
 export default function Navbar() {
     const pathname = usePathname();
     const router = useRouter();
+    const { lang, setLang, t, languages } = useLanguage();
     const [user, setUser] = useState<{ name: string; role: string; email: string } | null>(null);
     const [scrolled, setScrolled] = useState(false);
 
@@ -62,29 +59,59 @@ export default function Navbar() {
             </Link>
 
             <ul className="nav-links" style={{ display: "flex" }}>
-                {NAV_LINKS.map((link) => (
-                    <li key={link.href}>
-                        <Link
-                            href={link.href}
-                            className={`nav-link ${pathname === link.href ? "active" : ""}`}
-                        >
-                            <span style={{ fontSize: "12px" }}>{link.icon}</span> {link.label}
-                        </Link>
-                    </li>
-                ))}
+                <li>
+                    <Link href="/" className={`nav-link ${pathname === "/" ? "active" : ""}`}>
+                        <span style={{ fontSize: "12px" }}>🏠</span> {t("nav.home")}
+                    </Link>
+                </li>
+                <li>
+                    <Link href="/submit" className={`nav-link ${pathname === "/submit" ? "active" : ""}`}>
+                        <span style={{ fontSize: "12px" }}>📝</span> {t("nav.submit")}
+                    </Link>
+                </li>
+                <li>
+                    <Link href="/track" className={`nav-link ${pathname === "/track" ? "active" : ""}`}>
+                        <span style={{ fontSize: "12px" }}>🔍</span> {t("nav.track")}
+                    </Link>
+                </li>
                 {user && (
                     <li>
                         <Link
                             href={roleDashboard()}
                             className={`nav-link ${pathname.includes("dashboard") ? "active" : ""}`}
                         >
-                            <span style={{ fontSize: "12px" }}>📊</span> Dashboard
+                            <span style={{ fontSize: "12px" }}>📊</span> {t("nav.dashboard")}
                         </Link>
                     </li>
                 )}
             </ul>
 
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                {/* Language Switcher */}
+                <select
+                    value={lang}
+                    onChange={(e) => setLang(e.target.value as LanguageCode)}
+                    style={{
+                        background: "rgba(255,255,255,0.05)",
+                        border: "1px solid var(--border)",
+                        color: "var(--text-primary)",
+                        padding: "6px 10px",
+                        borderRadius: "8px",
+                        fontSize: "12px",
+                        outline: "none",
+                        cursor: "pointer",
+                        marginRight: "8px",
+                        appearance: "none",
+                        WebkitAppearance: "none",
+                    }}
+                >
+                    {languages.map((l) => (
+                        <option key={l.code} value={l.code} style={{ background: "var(--bg-primary)", color: "white" }}>
+                            {l.nativeName} ({l.code.toUpperCase()})
+                        </option>
+                    ))}
+                </select>
+
                 {user ? (
                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                         <div style={{
@@ -107,12 +134,12 @@ export default function Navbar() {
                         onMouseEnter={e => { e.currentTarget.style.background = "rgba(239,68,68,0.15)"; }}
                         onMouseLeave={e => { e.currentTarget.style.background = "rgba(239,68,68,0.08)"; }}
                         >
-                            Logout
+                            {t("nav.logout")}
                         </button>
                     </div>
                 ) : (
                     <Link href="/login" className="btn-primary" style={{ padding: "8px 20px", fontSize: "13px" }}>
-                        Sign In →
+                        {t("nav.signin")}
                     </Link>
                 )}
             </div>

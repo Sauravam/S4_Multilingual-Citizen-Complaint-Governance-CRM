@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { useLanguage } from "../context/LanguageContext";
 
 const FEATURES = [
   { icon: "🌍", title: "Multilingual AI", desc: "Submit in 15+ Indian languages. Our NLP engine auto-detects, translates, and processes.", gradient: "linear-gradient(135deg, #f97316, #fbbf24)" },
@@ -38,6 +39,8 @@ const ROLES = [
 export default function HomePage() {
   const [mounted, setMounted] = useState(false);
   const [activeRole, setActiveRole] = useState(0);
+  const { t } = useLanguage();
+
   useEffect(() => { setMounted(true); }, []);
 
   return (
@@ -78,7 +81,7 @@ export default function HomePage() {
             fontSize: "12px", color: "#f97316", fontWeight: 600, letterSpacing: "0.02em",
           }}>
             <span className="pulse-dot" style={{ background: "#f97316" }} />
-            Powered by AI · Serving 1.4 Billion Citizens
+            {t("hero.badge")}
           </div>
 
           <h1 style={{
@@ -89,22 +92,21 @@ export default function HomePage() {
             marginBottom: "24px",
             letterSpacing: "-0.03em",
           }}>
-            Your Voice,{" "}
-            <span className="gradient-text">Your Language,</span>
-            <br />Your Government
+            {t("hero.title1")}{" "}
+            <span className="gradient-text">{t("hero.title_gradient")}</span>
+            <br />{t("hero.title2")}
           </h1>
 
           <p style={{ fontSize: "18px", color: "var(--text-secondary)", maxWidth: "580px", margin: "0 auto 44px", lineHeight: 1.7 }}>
-            Submit civic complaints in <strong style={{ color: "var(--text-primary)" }}>any language</strong>.
-            Our AI translates, classifies, and routes them to the right authority — <strong style={{ color: "var(--accent-orange)" }}>automatically</strong>.
+            {t("hero.desc")}
           </p>
 
           <div style={{ display: "flex", gap: "14px", justifyContent: "center", flexWrap: "wrap" }}>
             <Link href="/submit" className="btn-primary" style={{ fontSize: "16px", padding: "16px 36px" }}>
-              📝 Submit a Complaint
+              {t("hero.btn_submit")}
             </Link>
             <Link href="/track" className="btn-secondary" style={{ fontSize: "16px", padding: "16px 36px" }}>
-              🔍 Track Complaint
+              {t("hero.btn_track")}
             </Link>
           </div>
         </div>
@@ -122,7 +124,9 @@ export default function HomePage() {
               <div style={{ fontSize: "38px", fontWeight: 800, fontFamily: "'Sora', sans-serif" }} className="gradient-text">
                 {stat.value}
               </div>
-              <div style={{ fontSize: "13px", color: "var(--text-secondary)", marginTop: "4px" }}>{stat.label}</div>
+              <div style={{ fontSize: "13px", color: "var(--text-secondary)", marginTop: "4px" }}>
+                {i === 0 ? t("stats.resolved") : i === 1 ? t("stats.languages") : i === 2 ? t("stats.satisfaction") : t("stats.time")}
+              </div>
             </div>
           ))}
         </div>

@@ -2,6 +2,7 @@
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useLanguage } from "../../context/LanguageContext";
 
 const API = "/api";
 
@@ -51,6 +52,7 @@ interface FormData {
 
 export default function SubmitComplaintPage() {
     const router = useRouter();
+    const { t } = useLanguage();
     const [step, setStep] = useState(0);
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<{ id: string; department: string; severity: string; category: string } | null>(null);
@@ -147,7 +149,7 @@ export default function SubmitComplaintPage() {
                             <Link href={`/track/${result.id}`} className="btn-primary">
                                 🔍 Track This Complaint
                             </Link>
-                            <button onClick={() => { setResult(null); setStep(0); setForm({ language: "en", category: "", title: "", description: "", location: "", state: "", citizen_email: "" }); }}
+                            <button onClick={() => { setResult(null); setStep(0); setForm({ language: "en", category: "", title: "", description: "", location: "", state: "", citizen_email: "", image_base64: "" }); }}
                                 className="btn-secondary">
                                 + Submit Another
                             </button>
@@ -164,10 +166,10 @@ export default function SubmitComplaintPage() {
                 {/* Header */}
                 <div style={{ marginBottom: "36px" }}>
                     <h1 style={{ fontFamily: "'Sora', sans-serif", fontSize: "28px", fontWeight: 700, marginBottom: "8px" }}>
-                        📝 Submit a Complaint
+                        {t("submit.title")}
                     </h1>
                     <p style={{ color: "var(--text-secondary)" }}>
-                        Submit in any language — our AI will translate and route it automatically.
+                        {t("submit.subtitle")}
                     </p>
                 </div>
 
@@ -191,7 +193,7 @@ export default function SubmitComplaintPage() {
                                 )}
                             </div>
                             <div style={{ fontSize: "11px", color: i === step ? "var(--accent-orange)" : "var(--text-muted)", marginTop: "6px", fontWeight: 600 }}>
-                                {s}
+                                {t(`submit.step${i + 1}`)}
                             </div>
                         </div>
                     ))}

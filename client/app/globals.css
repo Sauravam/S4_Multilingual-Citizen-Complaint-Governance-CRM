@@ -7,7 +7,9 @@
   --bg-glass: rgba(12, 28, 56, 0.65);
   --bg-glass-light: rgba(20, 40, 75, 0.4);
   --accent-orange: #f97316;
-  --accent-amber: #fbbf24;
+  --accent-gradient-start: #f97316;
+  --accent-gradient-end: #ea580c;
+  --bg-highlight: rgba(249, 115, 22, 0.08);
   --accent-blue: #3b82f6;
   --accent-green: #22c55e;
   --accent-red: #ef4444;
@@ -67,7 +69,7 @@ html, body {
 
 /* ============ GRADIENT TEXT ============ */
 .gradient-text {
-  background: linear-gradient(135deg, #f97316 0%, #fbbf24 40%, #fb923c 80%, #f97316 100%);
+  background: linear-gradient(135deg, var(--accent-gradient-start) 0%, var(--accent-gradient-end) 40%, var(--accent-gradient-start) 80%, var(--accent-gradient-end) 100%);
   background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -81,7 +83,7 @@ html, body {
 
 /* ============ BUTTONS ============ */
 .btn-primary {
-  background: linear-gradient(135deg, #f97316, #ea580c);
+  background: linear-gradient(135deg, var(--accent-gradient-start), var(--accent-gradient-end));
   color: white;
   border: none;
   padding: 12px 24px;

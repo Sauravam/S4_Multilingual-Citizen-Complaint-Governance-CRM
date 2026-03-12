@@ -2,11 +2,13 @@
 import { useState, FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useLanguage } from "../../context/LanguageContext";
 
 const API = "/api";
 
 export default function LoginPage() {
     const router = useRouter();
+    const { t } = useLanguage();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
@@ -76,10 +78,10 @@ export default function LoginPage() {
                             boxShadow: "0 4px 20px rgba(249,115,22,0.35)",
                         }}>🏛️</div>
                         <h1 style={{ fontFamily: "'Sora', sans-serif", fontSize: "26px", fontWeight: 700, marginBottom: "6px", letterSpacing: "-0.02em" }}>
-                            Welcome Back
+                            {t("auth.login.title")}
                         </h1>
                         <p style={{ color: "var(--text-secondary)", fontSize: "14px" }}>
-                            Sign in to GovTech CRM Portal
+                            {t("auth.login.subtitle")}
                         </p>
                     </div>
 
@@ -126,7 +128,7 @@ export default function LoginPage() {
 
                     <form onSubmit={handleLogin}>
                         <div className="form-group">
-                            <label className="form-label">Email Address</label>
+                            <label className="form-label">{t("auth.login.email")}</label>
                             <input
                                 className="input-field"
                                 type="email" placeholder="you@example.com"
@@ -134,7 +136,7 @@ export default function LoginPage() {
                             />
                         </div>
                         <div className="form-group">
-                            <label className="form-label">Password</label>
+                            <label className="form-label">{t("auth.login.password")}</label>
                             <input
                                 className="input-field"
                                 type="password" placeholder="••••••••"
@@ -148,14 +150,14 @@ export default function LoginPage() {
                                     <span className="spinner" style={{ width: "16px", height: "16px", borderWidth: "2px" }} />
                                     Signing in...
                                 </span>
-                            ) : "Sign In →"}
+                            ) : `${t("auth.login.btn")} →`}
                         </button>
                     </form>
 
                     <p style={{ textAlign: "center", marginTop: "24px", fontSize: "14px", color: "var(--text-secondary)" }}>
-                        New citizen?{" "}
+                        {t("auth.login.footer")}{" "}
                         <Link href="/register" style={{ color: "var(--accent-orange)", textDecoration: "none", fontWeight: 600 }}>
-                            Register here →
+                            {t("auth.login.register_link")} →
                         </Link>
                     </p>
                 </div>
