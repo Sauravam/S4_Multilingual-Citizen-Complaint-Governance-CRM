@@ -74,10 +74,13 @@ export default function SubmitComplaintPage() {
         try {
             const payload = {
                 ...form,
-                citizen_email: user?.email || form.citizen_email || "anonymous@gov.in",
+                citizen_email: user?.email,
             };
-            const headers: Record<string, string> = { "Content-Type": "application/json" };
-            if (user?.email) headers["X-User-Email"] = user.email;
+            const headers: Record<string, string> = { 
+                "Content-Type": "application/json",
+                "X-User-Email": user.email 
+            };
+            
             const res = await fetch(`${API}/complaints`, {
                 method: "POST",
                 headers,

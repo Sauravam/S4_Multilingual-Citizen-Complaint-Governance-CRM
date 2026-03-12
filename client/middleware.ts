@@ -18,8 +18,8 @@ export function middleware(req: NextRequest) {
         }
     }
 
-    // Citizen routes (previously /citizen in the user's plan but we use /user)
-    if (path.startsWith("/user")) {
+    // Citizen & Submit routes
+    if (path.startsWith("/user") || path.startsWith("/submit")) {
         if (role !== "citizen" && role !== "admin") {
             return NextResponse.redirect(new URL("/login", req.url));
         }
@@ -29,5 +29,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-    matcher: ["/admin/:path*", "/officer/:path*", "/user/:path*"],
+    matcher: ["/admin/:path*", "/officer/:path*", "/user/:path*", "/submit"],
 };
