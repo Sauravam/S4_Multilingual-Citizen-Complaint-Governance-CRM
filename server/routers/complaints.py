@@ -14,6 +14,8 @@ from services.ai_service import (
     classify_complaint, translate_text, detect_language,
     auto_assign_department, generate_complaint_id, LANGUAGES
 )
+from fastapi import Depends
+from .auth import require_role, get_current_user
 
 router = APIRouter(prefix="/complaints", tags=["complaints"])
 
@@ -43,29 +45,54 @@ def list_complaints(
     department: Optional[str] = None,
     citizen_email: Optional[str] = None,
     limit: int = Query(50, le=100),
+    user: dict = Depends(get_current_user)
 ):
     complaints = list(store.COMPLAINTS.values())
+    
+    # Enforce Role-Based Data Isolation
+    if user["role"] == "citizen":
+        # Citizen only sees their own complaints
+        complaints = [c for c in complaints if c["citizen_email"] == user["email"]]
+        # Ignore external filter for citizen_email to prevent unauthorized viewing
+    elif user["role"] == "officer":
+        # Officer only sees complaints for their department
+        assigned_dept = user.get("department")
+        complaints = [c for c in complaints if c["department"] == assigned_dept]
+    elif user["role"] == "admin":
+        # Admin can view all, but may still apply filters below
+        pass
+    else:
+        raise HTTPException(status_code=403, detail="Unknown role")
+
     if status:
         complaints = [c for c in complaints if c["status"] == status]
     if category:
         complaints = [c for c in complaints if c["category"] == category]
-    if department:
+    if department and user["role"] == "admin":
         complaints = [c for c in complaints if c["department"] == department]
-    if citizen_email:
+    if citizen_email and user["role"] == "admin":
         complaints = [c for c in complaints if c["citizen_email"] == citizen_email]
+    
     # Sort newest first
     complaints.sort(key=lambda x: x["submitted_at"], reverse=True)
     return {"complaints": complaints[:limit], "total": len(complaints)}
 
 @router.get("/{complaint_id}")
-def get_complaint(complaint_id: str):
+def get_complaint(complaint_id: str, user: dict = Depends(get_current_user)):
     complaint = store.COMPLAINTS.get(complaint_id)
     if not complaint:
         raise HTTPException(status_code=404, detail="Complaint not found")
+        
+    # Enforce data isolation
+    if user["role"] == "citizen" and complaint["citizen_email"] != user["email"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    if user["role"] == "officer" and complaint["department"] != user.get("department"):
+        raise HTTPException(status_code=403, detail="Access denied")
+        
     return complaint
 
 @router.post("", status_code=201)
-def create_complaint(body: ComplaintCreate):
+def create_complaint(body: ComplaintCreate, user: dict = Depends(require_role(["citizen", "admin"]))):
     # Detect language if not provided or confirm
     detected_lang = detect_language(body.description) if body.language == "en" else body.language
 
@@ -121,7 +148,7 @@ def create_complaint(body: ComplaintCreate):
     }
 
 @router.patch("/{complaint_id}/status")
-def update_status(complaint_id: str, body: StatusUpdate):
+def update_status(complaint_id: str, body: StatusUpdate, user: dict = Depends(require_role(["officer", "admin"]))):
     complaint = store.COMPLAINTS.get(complaint_id)
     if not complaint:
         raise HTTPException(status_code=404, detail="Complaint not found")
@@ -145,7 +172,7 @@ def update_status(complaint_id: str, body: StatusUpdate):
     return complaint
 
 @router.patch("/{complaint_id}/assign")
-def assign_complaint(complaint_id: str, body: AssignUpdate):
+def assign_complaint(complaint_id: str, body: AssignUpdate, user: dict = Depends(require_role(["admin"]))):
     complaint = store.COMPLAINTS.get(complaint_id)
     if not complaint:
         raise HTTPException(status_code=404, detail="Complaint not found")

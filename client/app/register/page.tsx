@@ -35,7 +35,7 @@ export default function RegisterPage() {
             const data = await res.json();
             localStorage.setItem("govtech_token", data.token);
             localStorage.setItem("govtech_user", JSON.stringify(data.user));
-            router.push("/citizen/dashboard");
+            router.push("/user/dashboard");
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : "Registration failed");
         } finally {

@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     PieChart, Pie, Cell, LineChart, Line, Legend
@@ -29,19 +30,22 @@ export default function AdminAnalyticsDashboard() {
     const [user, setUser] = useState<{ name: string; role: string } | null>(null);
 
     useEffect(() => {
+        let u: any = null;
         try {
-            const u = JSON.parse(localStorage.getItem("govtech_user") || "null");
+            u = JSON.parse(localStorage.getItem("govtech_user") || "null");
             if (!u || u.role !== "admin") { router.push("/login"); return; }
             setUser(u);
         } catch { router.push("/login"); return; }
 
+        const hdrs = { "X-User-Email": u.email };
+
         const load = async () => {
             try {
                 const [sumRes, trendRes, deptRes, langRes] = await Promise.all([
-                    fetch(`${API}/analytics/summary`),
-                    fetch(`${API}/analytics/trends`),
-                    fetch(`${API}/analytics/departments`),
-                    fetch(`${API}/analytics/languages`),
+                    fetch(`${API}/analytics/summary`, { headers: hdrs }),
+                    fetch(`${API}/analytics/trends`, { headers: hdrs }),
+                    fetch(`${API}/analytics/departments`, { headers: hdrs }),
+                    fetch(`${API}/analytics/languages`, { headers: hdrs }),
                 ]);
                 const [sum, tr, dep, lang] = await Promise.all([sumRes.json(), trendRes.json(), deptRes.json(), langRes.json()]);
                 setSummary(sum);
@@ -90,13 +94,29 @@ export default function AdminAnalyticsDashboard() {
     return (
         <main className="page-container">
             <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "40px 24px" }}>
-                <div style={{ marginBottom: "32px" }}>
-                    <h1 style={{ fontFamily: "'Sora', sans-serif", fontSize: "26px", fontWeight: 700, marginBottom: "4px" }}>
-                        📊 Analytics Dashboard
-                    </h1>
-                    <p style={{ color: "var(--text-secondary)", fontSize: "14px" }}>
-                        {user.name} · Real-time civic complaint intelligence
-                    </p>
+                <div style={{ marginBottom: "32px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div>
+                        <h1 style={{ fontFamily: "'Sora', sans-serif", fontSize: "26px", fontWeight: 700, marginBottom: "4px" }}>
+                            📊 Analytics Dashboard
+                        </h1>
+                        <p style={{ color: "var(--text-secondary)", fontSize: "14px" }}>
+                            {user.name} · Real-time civic complaint intelligence
+                        </p>
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", justifyContent: "flex-end" }}>
+                        <Link href="/admin/users" className="btn-secondary" style={{ padding: "8px 16px", textDecoration: "none", fontSize: "14px", fontWeight: "600" }}>
+                            👥 Users
+                        </Link>
+                        <Link href="/admin/officers" className="btn-secondary" style={{ padding: "8px 16px", textDecoration: "none", fontSize: "14px", fontWeight: "600" }}>
+                            👮 Officers
+                        </Link>
+                        <Link href="/admin/departments" className="btn-secondary" style={{ padding: "8px 16px", textDecoration: "none", fontSize: "14px", fontWeight: "600" }}>
+                            🏢 Depts
+                        </Link>
+                        <Link href="/admin/complaints" className="btn-primary" style={{ padding: "8px 16px", textDecoration: "none", fontSize: "14px", fontWeight: "600" }}>
+                            📋 All Complaints
+                        </Link>
+                    </div>
                 </div>
 
                 {/* Top KPIs */}

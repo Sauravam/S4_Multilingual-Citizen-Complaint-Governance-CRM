@@ -1,12 +1,17 @@
 """
 Analytics router — trends, department stats, heatmap data.
 """
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from datetime import datetime, timedelta
 from collections import defaultdict
 import data.store as store
+from .auth import require_role
 
-router = APIRouter(prefix="/analytics", tags=["analytics"])
+router = APIRouter(
+    prefix="/analytics",
+    tags=["analytics"],
+    dependencies=[Depends(require_role(["admin"]))]
+)
 
 def parse_date(iso_str: str):
     try:

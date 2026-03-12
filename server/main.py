@@ -23,6 +23,17 @@ app.include_router(auth.router)
 app.include_router(complaints.router)
 app.include_router(analytics.router)
 
+@app.on_event("startup")
+async def startup_event():
+    from database import users_collection
+    from data.store import USERS
+    
+    count = await users_collection.count_documents({})
+    if count == 0:
+        print("Seeding initial users to MongoDB...")
+        await users_collection.insert_many(list(USERS.values()))
+        print("User seeding complete.")
+
 @app.get("/")
 def root():
     return {

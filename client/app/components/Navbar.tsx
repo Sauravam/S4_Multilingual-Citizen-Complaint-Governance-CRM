@@ -30,9 +30,9 @@ export default function Navbar() {
 
     const roleDashboard = () => {
         if (!user) return "/login";
-        if (user.role === "citizen") return "/citizen/dashboard";
+        if (user.role === "citizen") return "/user/dashboard";
         if (user.role === "officer") return "/officer/dashboard";
-        if (user.role === "admin") return "/admin/analytics";
+        if (user.role === "admin") return "/admin/dashboard";
         return "/";
     };
 

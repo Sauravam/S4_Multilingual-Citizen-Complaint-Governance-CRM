@@ -27,11 +27,18 @@ export default function LoginPage() {
                 throw new Error(err.detail || "Login failed");
             }
             const data = await res.json();
+            
+            // Set for frontend components
             localStorage.setItem("govtech_token", data.token);
             localStorage.setItem("govtech_user", JSON.stringify(data.user));
-            if (data.user.role === "citizen") router.push("/citizen/dashboard");
+            
+            // Set cookies for Next.js Middleware
+            document.cookie = `govtech_user_role=${data.user.role}; path=/; max-age=86400`;
+            document.cookie = `govtech_user_email=${data.user.email}; path=/; max-age=86400`;
+            
+            if (data.user.role === "citizen") router.push("/user/dashboard");
             else if (data.user.role === "officer") router.push("/officer/dashboard");
-            else if (data.user.role === "admin") router.push("/admin/analytics");
+            else if (data.user.role === "admin") router.push("/admin/dashboard");
             else router.push("/");
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : "Login failed");

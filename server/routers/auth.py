@@ -1,9 +1,11 @@
 """
-Auth router — mock JWT-style login for demo.
+Auth router — MongoDB Atlas based login.
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Header, Depends
 from pydantic import BaseModel
-from data.store import USERS
+import sys, os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from database import users_collection
 import secrets
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -20,8 +22,8 @@ class RegisterRequest(BaseModel):
     phone: str = ""
 
 @router.post("/login")
-def login(body: LoginRequest):
-    user = USERS.get(body.email)
+async def login(body: LoginRequest):
+    user = await users_collection.find_one({"email": body.email})
     if not user or user["password"] != body.password:
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
@@ -29,7 +31,7 @@ def login(body: LoginRequest):
     return {
         "token": token,
         "user": {
-            "id": user["id"],
+            "id": user.get("id") or str(user["_id"]),
             "email": user["email"],
             "name": user["name"],
             "role": user["role"],
@@ -38,12 +40,14 @@ def login(body: LoginRequest):
     }
 
 @router.post("/register")
-def register(body: RegisterRequest):
-    if body.email in USERS:
+async def register(body: RegisterRequest):
+    if await users_collection.find_one({"email": body.email}):
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    user_id = f"u{len(USERS) + 1}"
-    USERS[body.email] = {
+    user_count = await users_collection.count_documents({})
+    user_id = f"u{user_count + 1}"
+    
+    new_user = {
         "id": user_id,
         "email": body.email,
         "name": body.name,
@@ -52,6 +56,9 @@ def register(body: RegisterRequest):
         "preferred_language": body.preferred_language,
         "phone": body.phone,
     }
+    
+    await users_collection.insert_one(new_user)
+    
     token = secrets.token_hex(24)
     return {
         "token": token,
@@ -65,8 +72,32 @@ def register(body: RegisterRequest):
     }
 
 @router.get("/users")
-def list_users():
+async def list_users():
+    users = await users_collection.find().to_list(length=100)
     return [
-        {"id": u["id"], "email": u["email"], "name": u["name"], "role": u["role"]}
-        for u in USERS.values()
+        {
+            "id": u.get("id") or str(u["_id"]), 
+            "email": u["email"], 
+            "name": u["name"], 
+            "role": u["role"]
+        }
+        for u in users
     ]
+
+# --- Role-Based Access Control Helpers ---
+
+async def get_current_user(x_user_email: str = Header(None)):
+    if not x_user_email:
+        raise HTTPException(status_code=401, detail="Authentication required. Missing X-User-Email header.")
+    
+    user = await users_collection.find_one({"email": x_user_email})
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid user.")
+    return user
+
+def require_role(allowed_roles: list[str]):
+    async def role_checker(user: dict = Depends(get_current_user)):
+        if user["role"] not in allowed_roles:
+            raise HTTPException(status_code=403, detail="Access denied. Insufficient permissions.")
+        return user
+    return role_checker
