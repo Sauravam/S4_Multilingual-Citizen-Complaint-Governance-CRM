@@ -228,6 +228,17 @@ export default function TrackComplaintPage() {
                                 <span>📂 {(complaint.category as string)?.toUpperCase()}</span>
                                 <span>🏢 {complaint.department as string}</span>
                             </div>
+
+                            {/* Evidence Photo */}
+                            {Array.isArray(complaint.media_urls) && complaint.media_urls.length > 0 && typeof complaint.media_urls[0] === "string" && (
+                                <div style={{ marginTop: "24px", paddingTop: "20px", borderTop: "1px solid var(--border)" }}>
+                                    <h3 style={{ fontSize: "14px", fontWeight: 600, marginBottom: "12px", color: "var(--text-secondary)" }}>📸 Attached Evidence</h3>
+                                    <div style={{ borderRadius: "12px", overflow: "hidden", border: "1px solid var(--border)", maxWidth: "400px" }}>
+                                        {/* Using standard img tag for external Supabase Storage URLs to avoid Next.js domain config requirements for now */}
+                                        <img src={complaint.media_urls[0]} alt="Complaint Evidence" style={{ width: "100%", height: "auto", display: "block" }} />
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Progress bar */}

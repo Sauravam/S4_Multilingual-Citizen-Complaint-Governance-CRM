@@ -46,6 +46,7 @@ interface FormData {
     location: string;
     state: string;
     citizen_email: string;
+    image_base64: string | null;
 }
 
 export default function SubmitComplaintPage() {
@@ -62,6 +63,7 @@ export default function SubmitComplaintPage() {
         location: "",
         state: "",
         citizen_email: "",
+        image_base64: null,
     });
 
     const user = typeof window !== "undefined"

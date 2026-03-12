@@ -158,6 +158,13 @@ export default function AdminComplaintsPage() {
                                                 {c.sla_breached && <span style={{ fontSize: "9px", background: "rgba(239,68,68,0.1)", color: "#ef4444", padding: "2px 6px", borderRadius: "10px", fontWeight: 700 }}>⚠️ SLA</span>}
                                             </div>
                                             <div style={{ fontWeight: 600, color: "var(--text-primary)" }}>{c.title}</div>
+                                            {Array.isArray(c.media_urls) && c.media_urls.length > 0 && typeof c.media_urls[0] === "string" && (
+                                                <div style={{ marginTop: "6px" }}>
+                                                    <a href={c.media_urls[0]} target="_blank" rel="noopener noreferrer" style={{ fontSize: "11px", color: "var(--accent-orange)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "4px", background: "rgba(249,115,22,0.1)", padding: "2px 8px", borderRadius: "4px" }}>
+                                                        📎 View Evidence
+                                                    </a>
+                                                </div>
+                                            )}
                                         </td>
                                         <td style={{ padding: "16px 20px", color: "var(--text-secondary)" }}>{c.citizen_email}</td>
                                         <td style={{ padding: "16px 20px" }}>

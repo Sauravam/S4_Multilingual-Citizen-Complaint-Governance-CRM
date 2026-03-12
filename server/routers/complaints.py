@@ -45,6 +45,7 @@ class ComplaintCreate(BaseModel):
     language: str = "en"
     citizen_email: str = "anonymous@gov.in"
     category: Optional[str] = None
+    image_base64: Optional[str] = None
 
 class StatusUpdate(BaseModel):
     status: str
@@ -183,6 +184,39 @@ def create_complaint(body: ComplaintCreate, user: dict = Depends(require_role(["
                 "message": f"{len(existing.data)} similar complaint(s) already reported at this location."
             }
 
+    # --- Image Upload to Supabase Storage ---
+    media_urls = []
+    if body.image_base64:
+        try:
+            import base64
+            import mimetypes
+            
+            # Extract base64 prefix if exists (e.g. data:image/png;base64,...)
+            header, encoded = body.image_base64.split(",", 1) if "," in body.image_base64 else ("", body.image_base64)
+            file_bytes = base64.b64decode(encoded)
+            
+            # Determine extension
+            ext = ".jpg"
+            if "image/png" in header: ext = ".png"
+            elif "image/jpeg" in header: ext = ".jpg"
+            elif "image/webm" in header: ext = ".webm"
+            
+            filename = f"{complaint_id}{ext}"
+            
+            # Upload to Supabase 'evidence' bucket
+            res = supabase.storage.from_("evidence").upload(
+                path=filename,
+                file=file_bytes,
+                file_options={"content-type": header.split(";")[0].replace("data:", "") if header else "image/jpeg"}
+            )
+            
+            # Get public URL
+            public_url = supabase.storage.from_("evidence").get_public_url(filename)
+            media_urls.append(public_url)
+        except Exception as e:
+            print(f"Failed to upload image: {e}")
+            pass
+
     now = datetime.utcnow().isoformat()
     complaint = {
         "id": complaint_id,
@@ -202,7 +236,7 @@ def create_complaint(body: ComplaintCreate, user: dict = Depends(require_role(["
         "department": dept_id,
         "assigned_to": None,
         "citizen_email": user["email"],
-        "media_urls": [],
+        "media_urls": media_urls,
         "history": [
             {"status": "submitted", "note": "Complaint received and registered.", "timestamp": now}
         ],

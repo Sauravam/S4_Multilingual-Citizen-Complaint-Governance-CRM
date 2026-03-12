@@ -220,6 +220,15 @@ export default function OfficerDashboard() {
                                     </div>
                                 ))}
                             </div>
+                            
+                            {/* Evidence Link */}
+                            {Array.isArray(selected.media_urls) && selected.media_urls.length > 0 && typeof selected.media_urls[0] === "string" && (
+                                <div style={{ marginBottom: "20px" }}>
+                                    <a href={selected.media_urls[0]} target="_blank" rel="noopener noreferrer" style={{ fontSize: "12px", color: "var(--accent-orange)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "6px", background: "rgba(249,115,22,0.1)", padding: "6px 12px", borderRadius: "6px" }}>
+                                        📎 View Uploaded Evidence
+                                    </a>
+                                </div>
+                            )}
 
                             {/* Update form */}
                             <div style={{ borderTop: "1px solid var(--border)", paddingTop: "18px" }}>

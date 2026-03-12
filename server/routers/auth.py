@@ -8,8 +8,12 @@ import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from database import supabase
 import secrets
+from database import supabase
+import secrets
+from passlib.context import CryptContext
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # --- Departments ---
 DEPARTMENTS = {
@@ -43,7 +47,15 @@ def login(body: LoginRequest):
         raise HTTPException(status_code=401, detail="Invalid email or password")
         
     user = res.data[0]
-    if user["password"] != body.password:
+    
+    # Handle both old plain-text users and new hashed users
+    try:
+        is_valid = pwd_context.verify(body.password, user["password"])
+    except ValueError:
+        # Fallback if old plain-text database entry
+        is_valid = user["password"] == body.password
+        
+    if not is_valid:
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
     token = secrets.token_hex(24)
@@ -75,12 +87,13 @@ def register(body: RegisterRequest):
         raise HTTPException(status_code=400, detail="Email already registered")
 
     user_id = f"u_{secrets.token_hex(6)}"
+    hashed_password = pwd_context.hash(body.password)
     
     new_user = {
         "id": user_id,
         "email": body.email,
         "name": body.name,
-        "password": body.password,
+        "password": hashed_password,
         "role": body.role,
         "department": body.department if body.role == "officer" else None,
         "preferred_language": body.preferred_language,
