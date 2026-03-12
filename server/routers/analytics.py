@@ -1,10 +1,14 @@
 """
-Analytics router — trends, department stats, heatmap data.
+Analytics router — trends, department stats, heatmap data via Supabase.
 """
 from fastapi import APIRouter, Depends
 from datetime import datetime, timedelta
 from collections import defaultdict
-import data.store as store
+import sys, os
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from database import supabase
+from data.store import DEPARTMENTS # Still used for naming config
 from .auth import require_role
 
 router = APIRouter(
@@ -19,9 +23,14 @@ def parse_date(iso_str: str):
     except:
         return None
 
+# Fetch all complaints from supabase for analytics processing
+def fetch_all_complaints():
+    res = supabase.table('complaints').select('*').execute()
+    return res.data or []
+
 @router.get("/summary")
 def get_summary():
-    complaints = list(store.COMPLAINTS.values())
+    complaints = fetch_all_complaints()
     total = len(complaints)
     by_status = defaultdict(int)
     by_category = defaultdict(int)
@@ -34,8 +43,9 @@ def get_summary():
         by_severity[c["severity"]] += 1
         if c.get("resolved_at") and c.get("submitted_at"):
             try:
-                submitted = datetime.fromisoformat(c["submitted_at"])
-                resolved = datetime.fromisoformat(c["resolved_at"])
+                # Handle varying ISO formats natively from Postgres
+                submitted = datetime.fromisoformat(c["submitted_at"].replace('Z', '+00:00'))
+                resolved = datetime.fromisoformat(c["resolved_at"].replace('Z', '+00:00'))
                 resolved_times.append((resolved - submitted).days)
             except:
                 pass
@@ -54,7 +64,7 @@ def get_summary():
 @router.get("/trends")
 def get_trends():
     """Returns complaint counts per day for the last 30 days."""
-    complaints = list(store.COMPLAINTS.values())
+    complaints = fetch_all_complaints()
     today = datetime.utcnow().date()
     days = {str(today - timedelta(days=i)): 0 for i in range(29, -1, -1)}
 
@@ -79,7 +89,7 @@ def get_trends():
 
 @router.get("/departments")
 def get_department_stats():
-    complaints = list(store.COMPLAINTS.values())
+    complaints = fetch_all_complaints()
     dept_stats = defaultdict(lambda: {"total": 0, "resolved": 0, "pending": 0, "avg_days": []})
 
     for c in complaints:
@@ -89,8 +99,8 @@ def get_department_stats():
             dept_stats[dept]["resolved"] += 1
             if c.get("resolved_at") and c.get("submitted_at"):
                 try:
-                    days = (datetime.fromisoformat(c["resolved_at"]) -
-                            datetime.fromisoformat(c["submitted_at"])).days
+                    days = (datetime.fromisoformat(c["resolved_at"].replace('Z', '+00:00')) -
+                            datetime.fromisoformat(c["submitted_at"].replace('Z', '+00:00'))).days
                     dept_stats[dept]["avg_days"].append(days)
                 except:
                     pass
@@ -99,7 +109,7 @@ def get_department_stats():
 
     result = []
     for dept_id, stats in dept_stats.items():
-        dept_info = store.DEPARTMENTS.get(dept_id, {"name": dept_id})
+        dept_info = DEPARTMENTS.get(dept_id, {"name": dept_id})
         avg = round(sum(stats["avg_days"]) / len(stats["avg_days"]), 1) if stats["avg_days"] else 0
         result.append({
             "department_id": dept_id,
@@ -117,7 +127,7 @@ def get_department_stats():
 @router.get("/heatmap")
 def get_heatmap():
     """Returns geo-coordinates for complaint heatmap."""
-    complaints = list(store.COMPLAINTS.values())
+    complaints = fetch_all_complaints()
     points = []
     for c in complaints:
         if c.get("latitude") and c.get("longitude"):
@@ -135,7 +145,7 @@ def get_heatmap():
 @router.get("/languages")
 def get_language_stats():
     """Language distribution of submitted complaints."""
-    complaints = list(store.COMPLAINTS.values())
+    complaints = fetch_all_complaints()
     by_language = defaultdict(int)
     for c in complaints:
         lang = c.get("original_language", "en")

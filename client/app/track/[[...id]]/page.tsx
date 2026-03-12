@@ -26,7 +26,10 @@ export default function TrackComplaintPage() {
         if (!cid) return;
         setLoading(true); setError("");
         try {
-            const res = await fetch(`${API}/complaints/${cid}`);
+            const uStr = localStorage.getItem("govtech_user");
+            const u = uStr ? JSON.parse(uStr) : null;
+            const hdrs = u?.email ? { "X-User-Email": u.email } : {};
+            const res = await fetch(`${API}/complaints/${cid}`, { headers: hdrs });
             if (!res.ok) throw new Error("Complaint not found");
             const data = await res.json();
             setComplaint(data);

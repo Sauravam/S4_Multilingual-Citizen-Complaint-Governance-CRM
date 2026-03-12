@@ -32,7 +32,8 @@ export default function OfficerDashboard() {
     const fetchComplaints = async (dept?: string) => {
         try {
             const url = dept ? `${API}/complaints?department=${dept}` : `${API}/complaints`;
-            const res = await fetch(url);
+            const headerObj = user ? { "X-User-Email": user.email } : {};
+            const res = await fetch(url, { headers: headerObj });
             const data = await res.json();
             setComplaints(data.complaints || []);
         } finally { setLoading(false); }

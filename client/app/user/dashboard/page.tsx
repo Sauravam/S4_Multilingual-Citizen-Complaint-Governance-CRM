@@ -28,7 +28,9 @@ export default function CitizenDashboard() {
 
     const fetchComplaints = async (email: string) => {
         try {
-            const res = await fetch(`${API}/complaints?citizen_email=${encodeURIComponent(email)}`);
+            const res = await fetch(`${API}/complaints?citizen_email=${encodeURIComponent(email)}`, {
+                headers: { "X-User-Email": email }
+            });
             const data = await res.json();
             setComplaints(data.complaints || []);
         } finally { setLoading(false); }
