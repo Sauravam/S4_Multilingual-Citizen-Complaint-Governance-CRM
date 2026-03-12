@@ -10,10 +10,9 @@ from database import supabase
 import secrets
 from database import supabase
 import secrets
-from passlib.context import CryptContext
+import bcrypt
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # --- Departments ---
 DEPARTMENTS = {
@@ -50,10 +49,14 @@ def login(body: LoginRequest):
     
     # Handle both old plain-text users and new hashed users
     try:
-        is_valid = pwd_context.verify(body.password, user["password"])
-    except ValueError:
-        # Fallback if old plain-text database entry
-        is_valid = user["password"] == body.password
+        if user["password"].startswith("$2"):
+            # It's a bcrypt hash
+            is_valid = bcrypt.checkpw(body.password.encode('utf-8'), user["password"].encode('utf-8'))
+        else:
+            # Fallback if old plain-text database entry
+            is_valid = user["password"] == body.password
+    except Exception:
+        is_valid = False
         
     if not is_valid:
         raise HTTPException(status_code=401, detail="Invalid email or password")
@@ -87,7 +90,7 @@ def register(body: RegisterRequest):
         raise HTTPException(status_code=400, detail="Email already registered")
 
     user_id = f"u_{secrets.token_hex(6)}"
-    hashed_password = pwd_context.hash(body.password)
+    hashed_password = bcrypt.hashpw(body.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
     
     new_user = {
         "id": user_id,
