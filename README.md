@@ -95,7 +95,6 @@ server/
 ```
 ---
 
-```markdown
 ## Final System Architecture
 
 ```mermaid
