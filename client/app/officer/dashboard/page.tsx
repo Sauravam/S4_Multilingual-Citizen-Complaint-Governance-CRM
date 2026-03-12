@@ -221,11 +221,15 @@ export default function OfficerDashboard() {
                                 ))}
                             </div>
                             
-                            {/* Evidence Link */}
+                            {/* Evidence Photo */}
                             {Array.isArray(selected.media_urls) && selected.media_urls.length > 0 && typeof selected.media_urls[0] === "string" && (
-                                <div style={{ marginBottom: "20px" }}>
-                                    <a href={selected.media_urls[0]} target="_blank" rel="noopener noreferrer" style={{ fontSize: "12px", color: "var(--accent-orange)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "6px", background: "rgba(249,115,22,0.1)", padding: "6px 12px", borderRadius: "6px" }}>
-                                        📎 View Uploaded Evidence
+                                <div style={{ marginBottom: "20px", borderTop: "1px solid var(--border)", paddingTop: "16px" }}>
+                                    <h4 style={{ fontSize: "12px", fontWeight: 600, marginBottom: "10px", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.5px" }}>📸 Attached Evidence</h4>
+                                    <div style={{ borderRadius: "10px", overflow: "hidden", border: "1px solid var(--border)", marginBottom: "8px" }}>
+                                        <img src={selected.media_urls[0] as string} alt="Complaint Evidence" style={{ width: "100%", height: "auto", display: "block" }} />
+                                    </div>
+                                    <a href={selected.media_urls[0] as string} target="_blank" rel="noopener noreferrer" style={{ fontSize: "11px", color: "var(--accent-orange)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                                        🔗 Open full size ↗
                                     </a>
                                 </div>
                             )}
