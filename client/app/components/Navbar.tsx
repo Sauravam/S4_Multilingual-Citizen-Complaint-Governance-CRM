@@ -64,16 +64,20 @@ export default function Navbar() {
                         <span style={{ fontSize: "12px" }}>🏠</span> {t("nav.home")}
                     </Link>
                 </li>
-                <li>
-                    <Link href="/submit" className={`nav-link ${pathname === "/submit" ? "active" : ""}`}>
-                        <span style={{ fontSize: "12px" }}>📝</span> {t("nav.submit")}
-                    </Link>
-                </li>
-                <li>
-                    <Link href="/track" className={`nav-link ${pathname === "/track" ? "active" : ""}`}>
-                        <span style={{ fontSize: "12px" }}>🔍</span> {t("nav.track")}
-                    </Link>
-                </li>
+                {(!user || user.role === "citizen") && (
+                    <>
+                        <li>
+                            <Link href="/submit" className={`nav-link ${pathname === "/submit" ? "active" : ""}`}>
+                                <span style={{ fontSize: "12px" }}>📝</span> {t("nav.submit")}
+                            </Link>
+                        </li>
+                        <li>
+                            <Link href="/track" className={`nav-link ${pathname === "/track" ? "active" : ""}`}>
+                                <span style={{ fontSize: "12px" }}>🔍</span> {t("nav.track")}
+                            </Link>
+                        </li>
+                    </>
+                )}
                 {user && (
                     <li>
                         <Link

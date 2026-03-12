@@ -28,12 +28,13 @@ function daysSince(isoString: string): number {
 
 export default function TrackComplaintPage() {
     const { id } = useParams();
-    const [complaint, setComplaint] = useState<Record<string, unknown> | null>(null);
+    const paramId = Array.isArray(id) ? id[0] : (typeof id === "string" ? id : "");
+    const [searchId, setSearchId] = useState(paramId);
+    const [activeId, setActiveId] = useState(paramId);
+    const [user, setUser] = useState<{ email: string; role: string } | null>(null);
+    const [complaint, setComplaint] = useState<any | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    const [searchId, setSearchId] = useState(typeof id === "string" ? id : "");
-    const [activeId, setActiveId] = useState(typeof id === "string" ? id : "");
-    const [user, setUser] = useState<{ email: string; role: string } | null>(null);
     const [escalating, setEscalating] = useState(false);
     const [escalateMsg, setEscalateMsg] = useState("");
 
@@ -86,7 +87,7 @@ export default function TrackComplaintPage() {
     const officerUpdates = history.filter(h => h.status !== "submitted" && h.note);
     const ageInDays = complaint ? daysSince(complaint.submitted_at as string) : 0;
     const isSLABreached = complaint?.sla_breached;
-    const similarCount = (complaint?.similar_count as number) || 0;
+    const similarCount = complaint?.similar_count || 0;
     const canEscalate = user && complaint && user.email === complaint.citizen_email && !["resolved", "rejected"].includes(complaint.status as string) && ageInDays >= 3;
 
     const TOOLTIP_STYLE = {
