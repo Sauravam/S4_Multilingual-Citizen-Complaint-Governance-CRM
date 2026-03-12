@@ -33,6 +33,9 @@ export default function TrackComplaintPage() {
     const [error, setError] = useState("");
     const [searchId, setSearchId] = useState(typeof id === "string" ? id : "");
     const [activeId, setActiveId] = useState(typeof id === "string" ? id : "");
+    const [user, setUser] = useState<{ email: string; role: string } | null>(null);
+    const [escalating, setEscalating] = useState(false);
+    const [escalateMsg, setEscalateMsg] = useState("");
 
     const fetchComplaint = async (cid: string) => {
         if (!cid) return;
@@ -40,7 +43,8 @@ export default function TrackComplaintPage() {
         try {
             const uStr = localStorage.getItem("govtech_user");
             const u = uStr ? JSON.parse(uStr) : null;
-            const hdrs = u?.email ? { "X-User-Email": u.email } : {};
+            setUser(u);
+            const hdrs: Record<string, string> = u?.email ? { "X-User-Email": u.email } : {};
             const res = await fetch(`${API}/complaints/${cid}`, { headers: hdrs });
             if (!res.ok) throw new Error("Complaint not found");
             const data = await res.json();
@@ -55,11 +59,35 @@ export default function TrackComplaintPage() {
 
     useEffect(() => { if (activeId) fetchComplaint(activeId); else setLoading(false); }, [activeId]);
 
+    const handleEscalate = async () => {
+        if (!user || !complaint) return;
+        setEscalating(true); setEscalateMsg("");
+        try {
+            const res = await fetch(`${API}/complaints/${complaint.id}/escalate`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-User-Email": user.email },
+                body: JSON.stringify({ reason: "Delayed resolution — citizen escalation" }),
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || "Escalation failed");
+            }
+            setEscalateMsg("✅ Escalated to CRITICAL priority!");
+            fetchComplaint(complaint.id as string);
+        } catch (e: unknown) {
+            setEscalateMsg(`❌ ${e instanceof Error ? e.message : "Failed"}`);
+        } finally {
+            setEscalating(false);
+        }
+    };
+
     const currentStepIndex = complaint ? STATUS_STEPS.indexOf(complaint.status as string) : -1;
     const history = (complaint?.history as HistoryItem[]) || [];
     const officerUpdates = history.filter(h => h.status !== "submitted" && h.note);
     const ageInDays = complaint ? daysSince(complaint.submitted_at as string) : 0;
-    const isSLABreached = complaint && !["resolved", "rejected"].includes(complaint.status as string) && ageInDays >= 7;
+    const isSLABreached = complaint?.sla_breached;
+    const similarCount = (complaint?.similar_count as number) || 0;
+    const canEscalate = user && complaint && user.email === complaint.citizen_email && !["resolved", "rejected"].includes(complaint.status as string) && ageInDays >= 3;
 
     const TOOLTIP_STYLE = {
         backgroundColor: "#0f1f3d", border: "1px solid rgba(255,255,255,0.1)",
@@ -112,9 +140,26 @@ export default function TrackComplaintPage() {
                 )}
 
                 {error && <div className="alert-error">⚠️ {error} — Check the ID and try again.</div>}
+                {escalateMsg && <div className={escalateMsg.startsWith("✅") ? "alert-success" : "alert-error"} style={{ marginBottom: "16px" }}>{escalateMsg}</div>}
 
                 {complaint && !loading && (
                     <div style={{ animation: "fadeInUp 0.4s ease-out" }}>
+                        {/* Similar Complaints Banner */}
+                        {similarCount > 0 && (
+                            <div style={{
+                                padding: "12px 20px", borderRadius: "12px", marginBottom: "16px",
+                                background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.3)",
+                                display: "flex", alignItems: "center", gap: "12px",
+                            }}>
+                                <span style={{ fontSize: "20px" }}>📌</span>
+                                <div>
+                                    <div style={{ fontWeight: 600, color: "#60a5fa", fontSize: "14px" }}>Duplicate Issues Detected</div>
+                                    <div style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
+                                        <strong style={{ color: "#60a5fa" }}>{similarCount} other citizens</strong> have reported similar issues in this location. They have been clustered by AI for faster resolution.
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                         {/* SLA Breach Banner */}
                         {isSLABreached && (
                             <div style={{
@@ -139,7 +184,18 @@ export default function TrackComplaintPage() {
                                     <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.5px" }}>Complaint ID</div>
                                     <div style={{ fontFamily: "monospace", fontWeight: 700, fontSize: "20px", color: "var(--accent-orange)" }}>{complaint.id as string}</div>
                                 </div>
-                                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
+                                    {canEscalate && (
+                                        <button onClick={handleEscalate} disabled={escalating}
+                                            style={{
+                                                padding: "6px 14px", borderRadius: "8px", fontSize: "12px", fontWeight: 700,
+                                                border: "1px solid #ef4444", background: "rgba(239,68,68,0.1)",
+                                                color: "#ef4444", cursor: "pointer", transition: "all 0.2s",
+                                                marginRight: "8px",
+                                            }}>
+                                            {escalating ? "..." : "⚡ Escalate"}
+                                        </button>
+                                    )}
                                     <span className={`badge badge-${complaint.status}`}>
                                         {STATUS_ICONS[complaint.status as string]} {STATUS_LABELS[complaint.status as string] || (complaint.status as string)}
                                     </span>

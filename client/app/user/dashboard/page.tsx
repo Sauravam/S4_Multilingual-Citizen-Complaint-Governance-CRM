@@ -13,6 +13,10 @@ const STATUS_ICONS: Record<string, string> = {
     submitted: "📩", under_review: "🔍", in_progress: "🔧", resolved: "✅", rejected: "❌",
 };
 
+function daysSince(iso: string): number {
+    try { return Math.floor((Date.now() - new Date(iso).getTime()) / 86400000); } catch { return 0; }
+}
+
 export default function CitizenDashboard() {
     const router = useRouter();
     const [complaints, setComplaints] = useState<Record<string, unknown>[]>([]);
@@ -20,6 +24,8 @@ export default function CitizenDashboard() {
     const [user, setUser] = useState<{ name: string; email: string; role: string } | null>(null);
     const [activeTab, setActiveTab] = useState("all");
     const [searchId, setSearchId] = useState("");
+    const [escalating, setEscalating] = useState<string | null>(null);
+    const [escalateMsg, setEscalateMsg] = useState("");
 
     useEffect(() => {
         try {
@@ -32,23 +38,47 @@ export default function CitizenDashboard() {
 
     const fetchComplaints = async (email: string) => {
         try {
-            const res = await fetch(`${API}/complaints?citizen_email=${encodeURIComponent(email)}`, {
-                headers: { "X-User-Email": email }
-            });
+            const res = await fetch(`${API}/complaints`, { headers: { "X-User-Email": email } });
             const data = await res.json();
             setComplaints(data.complaints || []);
         } finally { setLoading(false); }
     };
 
+    const handleEscalate = async (complaintId: string) => {
+        if (!user) return;
+        setEscalating(complaintId);
+        setEscalateMsg("");
+        try {
+            const res = await fetch(`${API}/complaints/${complaintId}/escalate`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-User-Email": user.email },
+                body: JSON.stringify({ reason: "Delayed resolution — citizen escalation" }),
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || "Escalation failed");
+            }
+            setEscalateMsg("✅ Escalated to CRITICAL priority!");
+            fetchComplaints(user.email); // refresh
+        } catch (e: unknown) {
+            setEscalateMsg(`❌ ${e instanceof Error ? e.message : "Failed"}`);
+        } finally {
+            setTimeout(() => { setEscalating(null); setEscalateMsg(""); }, 3000);
+        }
+    };
+
     const filtered = activeTab === "all"
         ? complaints
-        : complaints.filter(c => c.status === activeTab);
+        : activeTab === "sla_breached"
+            ? complaints.filter(c => c.sla_breached)
+            : complaints.filter(c => c.status === activeTab);
 
     const counts = {
         all: complaints.length,
         submitted: complaints.filter(c => c.status === "submitted").length,
         in_progress: complaints.filter(c => c.status === "in_progress" || c.status === "under_review").length,
         resolved: complaints.filter(c => c.status === "resolved").length,
+        sla_breached: complaints.filter(c => c.sla_breached).length,
     };
 
     if (!user) return null;
@@ -81,17 +111,21 @@ export default function CitizenDashboard() {
                 </div>
 
                 {/* Stats */}
-                <div className="grid-4" style={{ marginBottom: "28px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "14px", marginBottom: "28px" }}>
                     {[
                         { label: "Total Filed", value: counts.all, icon: "📋", color: "#60a5fa" },
-                        { label: "New / Pending", value: counts.submitted, icon: "📩", color: "#f97316" },
+                        { label: "Pending", value: counts.submitted, icon: "📩", color: "#f97316" },
                         { label: "In Progress", value: counts.in_progress, icon: "🔧", color: "#fbbf24" },
                         { label: "Resolved", value: counts.resolved, icon: "✅", color: "#4ade80" },
-                    ].map(s => (
-                        <div key={s.label} className="stat-card" style={{ textAlign: "center" }}>
-                            <div style={{ fontSize: "24px", marginBottom: "4px" }}>{s.icon}</div>
-                            <div style={{ fontSize: "32px", fontWeight: 800, color: s.color, fontFamily: "'Sora', sans-serif" }}>{s.value}</div>
-                            <div style={{ fontSize: "12px", color: "var(--text-secondary)", marginTop: "4px" }}>{s.label}</div>
+                        { label: "SLA Breached", value: counts.sla_breached, icon: "🚨", color: "#ef4444", urgent: true },
+                    ].map((s: any) => (
+                        <div key={s.label} className="stat-card" style={{
+                            textAlign: "center",
+                            ...(s.urgent && s.value > 0 ? { borderColor: "rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.04)" } : {}),
+                        }}>
+                            <div style={{ fontSize: "22px", marginBottom: "4px" }}>{s.icon}</div>
+                            <div style={{ fontSize: "28px", fontWeight: 800, color: s.color, fontFamily: "'Sora', sans-serif" }}>{s.value}</div>
+                            <div style={{ fontSize: "11px", color: s.urgent && s.value > 0 ? "#ef4444" : "var(--text-secondary)", fontWeight: s.urgent ? 600 : 400, marginTop: "4px" }}>{s.label}</div>
                         </div>
                     ))}
                 </div>
@@ -111,6 +145,13 @@ export default function CitizenDashboard() {
                     </button>
                 </div>
 
+                {/* Escalation message */}
+                {escalateMsg && (
+                    <div className={escalateMsg.startsWith("✅") ? "alert-success" : "alert-error"} style={{ marginBottom: "16px", fontSize: "13px" }}>
+                        {escalateMsg}
+                    </div>
+                )}
+
                 {/* Tab filters */}
                 <div style={{ display: "flex", gap: "6px", marginBottom: "20px", flexWrap: "wrap" }}>
                     {[
@@ -118,12 +159,13 @@ export default function CitizenDashboard() {
                         { key: "submitted", label: "Pending", count: counts.submitted },
                         { key: "in_progress", label: "Active", count: counts.in_progress },
                         { key: "resolved", label: "Resolved", count: counts.resolved },
+                        { key: "sla_breached", label: "⏰ SLA Alert", count: counts.sla_breached },
                     ].map(t => (
                         <button key={t.key} onClick={() => setActiveTab(t.key)} style={{
                             padding: "8px 16px", borderRadius: "20px", fontSize: "12px", fontWeight: 600,
-                            border: `1px solid ${activeTab === t.key ? "var(--accent-orange)" : "var(--border)"}`,
-                            background: activeTab === t.key ? "rgba(249,115,22,0.1)" : "transparent",
-                            color: activeTab === t.key ? "var(--accent-orange)" : "var(--text-secondary)",
+                            border: `1px solid ${activeTab === t.key ? (t.key === "sla_breached" ? "#ef4444" : "var(--accent-orange)") : "var(--border)"}`,
+                            background: activeTab === t.key ? (t.key === "sla_breached" ? "rgba(239,68,68,0.1)" : "rgba(249,115,22,0.1)") : "transparent",
+                            color: activeTab === t.key ? (t.key === "sla_breached" ? "#ef4444" : "var(--accent-orange)") : "var(--text-secondary)",
                             cursor: "pointer", transition: "all 0.2s",
                         }}>
                             {t.label} ({t.count})
@@ -147,42 +189,83 @@ export default function CitizenDashboard() {
                     </div>
                 ) : (
                     <div style={{ display: "grid", gap: "12px" }}>
-                        {filtered.map((c, i) => (
-                            <Link key={c.id as string} href={`/track/${c.id}`} style={{ textDecoration: "none" }}>
-                                <div className="glass-card" style={{
-                                    padding: "20px 24px", cursor: "pointer",
-                                    display: "grid", gridTemplateColumns: "1fr auto",
-                                    alignItems: "center", gap: "16px",
+                        {filtered.map((c, i) => {
+                            const age = daysSince(c.submitted_at as string);
+                            const breached = c.sla_breached as boolean;
+                            const canEscalate = !["resolved", "rejected"].includes(c.status as string) && age >= 3;
+                            const latestNote = ((c.history as any[]) || []).filter((h: any) => h.officer && h.officer !== "SYSTEM").pop();
+
+                            return (
+                                <div key={c.id as string} className="glass-card" style={{
+                                    padding: "20px 24px",
                                     animation: `fadeInUp 0.4s ease-out ${i * 0.05}s both`,
-                                }}
-                                onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(249,115,22,0.25)"; e.currentTarget.style.transform = "translateX(4px)"; }}
-                                onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.transform = "translateX(0)"; }}
-                                >
-                                    <div>
-                                        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }}>
-                                            <span style={{ fontFamily: "monospace", fontSize: "11px", color: "var(--accent-orange)", fontWeight: 700, background: "rgba(249,115,22,0.08)", padding: "2px 8px", borderRadius: "6px" }}>
-                                                {c.id as string}
+                                    borderLeft: breached ? "3px solid #ef4444" : "3px solid transparent",
+                                }}>
+                                    <div style={{ display: "grid", gridTemplateColumns: "1fr auto", alignItems: "flex-start", gap: "16px" }}>
+                                        <Link href={`/track/${c.id}`} style={{ textDecoration: "none", color: "inherit" }}>
+                                            <div>
+                                                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px", flexWrap: "wrap" }}>
+                                                    <span style={{ fontFamily: "monospace", fontSize: "11px", color: "var(--accent-orange)", fontWeight: 700, background: "rgba(249,115,22,0.08)", padding: "2px 8px", borderRadius: "6px" }}>
+                                                        {c.id as string}
+                                                    </span>
+                                                    <span className={`badge badge-${c.severity}`} style={{ fontSize: "9px" }}>{c.severity as string}</span>
+                                                    {breached && (
+                                                        <span style={{ fontSize: "9px", fontWeight: 700, padding: "2px 8px", borderRadius: "10px", background: "rgba(239,68,68,0.12)", color: "#ef4444" }}>
+                                                            ⏰ SLA BREACHED ({age}d)
+                                                        </span>
+                                                    )}
+                                                    {!breached && age > 0 && (
+                                                        <span style={{ fontSize: "9px", color: "var(--text-muted)" }}>📅 {age}d ago</span>
+                                                    )}
+                                                </div>
+                                                <h3 style={{ fontSize: "15px", fontWeight: 600, color: "var(--text-primary)", marginBottom: "4px" }}>{c.title as string}</h3>
+                                                <div style={{ display: "flex", gap: "16px", fontSize: "12px", color: "var(--text-muted)" }}>
+                                                    <span>📍 {c.location as string}</span>
+                                                    {c.state && <span>🗺️ {c.state as string}</span>}
+                                                    <span>🏢 {c.department as string}</span>
+                                                </div>
+
+                                                {/* Latest officer note */}
+                                                {latestNote && (
+                                                    <div style={{
+                                                        marginTop: "10px", padding: "8px 12px", borderRadius: "8px",
+                                                        background: "rgba(96,165,250,0.06)", border: "1px solid rgba(96,165,250,0.15)",
+                                                        fontSize: "12px", color: "var(--text-secondary)",
+                                                    }}>
+                                                        <span style={{ color: "#60a5fa", fontWeight: 600 }}>🏢 Officer: </span>
+                                                        {latestNote.note}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </Link>
+
+                                        <div style={{ textAlign: "right", display: "flex", flexDirection: "column", gap: "8px", alignItems: "flex-end" }}>
+                                            <span className={`badge badge-${c.status}`} style={{ fontSize: "10px" }}>
+                                                {STATUS_ICONS[c.status as string]} {STATUS_LABELS[c.status as string]}
                                             </span>
-                                            <span className={`badge badge-${c.severity}`} style={{ fontSize: "9px" }}>{c.severity as string}</span>
-                                        </div>
-                                        <h3 style={{ fontSize: "15px", fontWeight: 600, color: "var(--text-primary)", marginBottom: "4px" }}>{c.title as string}</h3>
-                                        <div style={{ display: "flex", gap: "16px", fontSize: "12px", color: "var(--text-muted)" }}>
-                                            <span>📍 {c.location as string}</span>
-                                            {c.state && <span>🗺️ {c.state as string}</span>}
-                                            <span>🏢 {c.department as string}</span>
-                                        </div>
-                                    </div>
-                                    <div style={{ textAlign: "right" }}>
-                                        <span className={`badge badge-${c.status}`} style={{ fontSize: "10px" }}>
-                                            {STATUS_ICONS[c.status as string]} {STATUS_LABELS[c.status as string]}
-                                        </span>
-                                        <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "6px" }}>
-                                            {c.submitted_at ? new Date(c.submitted_at as string).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : ""}
+                                            <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                                                {c.submitted_at ? new Date(c.submitted_at as string).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : ""}
+                                            </div>
+                                            {canEscalate && (
+                                                <button
+                                                    onClick={(e) => { e.preventDefault(); handleEscalate(c.id as string); }}
+                                                    disabled={escalating === c.id}
+                                                    style={{
+                                                        padding: "4px 10px", borderRadius: "8px", fontSize: "10px", fontWeight: 700,
+                                                        border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.08)",
+                                                        color: "#ef4444", cursor: "pointer", transition: "all 0.2s",
+                                                    }}
+                                                    onMouseEnter={e => { e.currentTarget.style.background = "rgba(239,68,68,0.15)"; }}
+                                                    onMouseLeave={e => { e.currentTarget.style.background = "rgba(239,68,68,0.08)"; }}
+                                                >
+                                                    {escalating === c.id ? "..." : "⚡ Escalate"}
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
-                            </Link>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
             </div>

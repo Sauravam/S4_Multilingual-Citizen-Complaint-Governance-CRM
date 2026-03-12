@@ -1,14 +1,14 @@
 """
-Complaints router — core CRUD + AI integration via Supabase.
+Complaints router — core CRUD + AI integration + duplicate detection + escalation via Supabase.
 Role enforcement:
-  - Citizen: can submit complaints and view their own
+  - Citizen: can submit complaints, view their own, escalate
   - Officer: can view department complaints, update status
   - Admin: read-only access to all complaints
 """
 from fastapi import APIRouter, HTTPException, Query, Depends
 from pydantic import BaseModel
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 import sys, os
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -21,6 +21,8 @@ from .auth import require_role, get_current_user, get_optional_user
 from data.store import DEPARTMENTS
 
 router = APIRouter(prefix="/complaints", tags=["complaints"])
+
+SLA_DAYS = 7
 
 # --- Indian States List ---
 INDIAN_STATES = [
@@ -53,11 +55,28 @@ class AssignUpdate(BaseModel):
     department: str
     officer_email: str
 
+class EscalationRequest(BaseModel):
+    reason: str = ""
+
 def generate_complaint_id() -> str:
     import uuid
     year = datetime.now().year
     short_uuid = str(uuid.uuid4())[:6].upper()
     return f"GOV-{year}-{short_uuid}"
+
+def is_sla_breached(complaint: dict) -> bool:
+    if complaint.get("status") in ("resolved", "rejected"):
+        return False
+    submitted = complaint.get("submitted_at", "")
+    if not submitted:
+        return False
+    try:
+        submitted_dt = datetime.fromisoformat(submitted.replace('Z', '+00:00'))
+        if submitted_dt.tzinfo is None:
+            submitted_dt = submitted_dt.replace(tzinfo=timezone.utc)
+        return (datetime.now(timezone.utc) - submitted_dt).days >= SLA_DAYS
+    except:
+        return False
 
 # --- Endpoints ---
 
@@ -86,8 +105,7 @@ def list_complaints(
         if assigned_dept:
             query = query.eq("department", assigned_dept)
     elif user["role"] == "admin":
-        # Admin sees everything (read-only enforced at endpoint level)
-        pass
+        pass  # Admin sees everything
     else:
         raise HTTPException(status_code=403, detail="Unknown role")
 
@@ -106,6 +124,11 @@ def list_complaints(
     res = query.execute()
 
     complaints = res.data or []
+    
+    # Add SLA flag to each complaint
+    for c in complaints:
+        c["sla_breached"] = is_sla_breached(c)
+
     return {"complaints": complaints, "total": len(complaints)}
 
 @router.get("/{complaint_id}")
@@ -116,23 +139,24 @@ def get_complaint(complaint_id: str, user: dict = Depends(get_optional_user)):
 
     complaint = res.data[0]
 
-    # If the user is an officer, they can only view complaints in their department
-    # If the user is a citizen, they can only view their own complaints
-    # If the user is an admin, they can view all complaints
-    
-    # Wait, the tracking page currently allows anyone to track by ID. 
-    # If a citizen is logged in, we shouldn't block them from tracking another complaint ID (like a friend's)
-    # just because they are logged in. The ID itself acts as a public tracking token.
-    # But if we strictly want to isolate, let's keep it isolated, EXCEPT the track page passes the logged-in user's email.
-    
-    # Actually, the user's issue might be in `PATCH /status`. The officer adds a note.
-    # Let's check `get_complaint` isolation rules:
+    # Officers can only view complaints in their department
     if user:
         if user["role"] == "officer" and complaint.get("department") != user.get("department"):
             raise HTTPException(status_code=403, detail="Officers can only view complaints in their own department.")
-        # We will NOT restrict citizens from tracking any complaint by ID.
-        # Track by ID is traditionally public if you have the ID.
-        # Admin can view all.
+
+    # Add SLA flag and duplicate count
+    complaint["sla_breached"] = is_sla_breached(complaint)
+    
+    # Check for similar/duplicate complaints (same location + category)
+    if complaint.get("category") and complaint.get("location"):
+        dup_res = supabase.table("complaints").select("id").eq(
+            "category", complaint["category"]
+        ).eq("location", complaint["location"]).neq("id", complaint_id).execute()
+        complaint["similar_count"] = len(dup_res.data) if dup_res.data else 0
+    else:
+        complaint["similar_count"] = 0
+
+    return complaint
 
 # --- CITIZEN ONLY: Submit a new complaint ---
 @router.post("", status_code=201)
@@ -145,6 +169,19 @@ def create_complaint(body: ComplaintCreate, user: dict = Depends(require_role(["
     category = body.category or ai_result["category"]
     dept_id = auto_assign_department(category)
     complaint_id = generate_complaint_id()
+
+    # --- Duplicate Detection ---
+    duplicate_info = None
+    if body.location:
+        existing = supabase.table("complaints").select("id, title, status").eq(
+            "category", category
+        ).eq("location", body.location).neq("status", "resolved").neq("status", "rejected").limit(5).execute()
+        if existing.data and len(existing.data) > 0:
+            duplicate_info = {
+                "similar_count": len(existing.data),
+                "similar_ids": [c["id"] for c in existing.data[:3]],
+                "message": f"{len(existing.data)} similar complaint(s) already reported at this location."
+            }
 
     now = datetime.utcnow().isoformat()
     complaint = {
@@ -179,10 +216,60 @@ def create_complaint(body: ComplaintCreate, user: dict = Depends(require_role(["
     if not insert_res.data:
         raise HTTPException(status_code=500, detail="Failed to save complaint")
 
-    return {
+    result = {
         "complaint": insert_res.data[0],
         "message": f"Complaint {complaint_id} submitted successfully.",
         "department_assigned": DEPARTMENTS.get(dept_id, {}).get("name", dept_id),
+    }
+    if duplicate_info:
+        result["duplicate_warning"] = duplicate_info
+
+    return result
+
+# --- CITIZEN ONLY: Escalate a complaint ---
+@router.post("/{complaint_id}/escalate")
+def escalate_complaint(complaint_id: str, body: EscalationRequest, user: dict = Depends(require_role(["citizen"]))):
+    """Citizen can escalate a complaint if it's been open too long or not being resolved."""
+    res = supabase.table("complaints").select("*").eq("id", complaint_id).execute()
+    if not res.data or len(res.data) == 0:
+        raise HTTPException(status_code=404, detail="Complaint not found")
+
+    complaint = res.data[0]
+
+    # Only the citizen who submitted can escalate
+    if complaint["citizen_email"] != user["email"]:
+        raise HTTPException(status_code=403, detail="You can only escalate your own complaints.")
+
+    # Cannot escalate if already resolved/rejected
+    if complaint["status"] in ("resolved", "rejected"):
+        raise HTTPException(status_code=400, detail="Cannot escalate a resolved or rejected complaint.")
+
+    now = datetime.utcnow().isoformat()
+    history = complaint.get("history", [])
+
+    # Change severity to critical if not already
+    new_severity = "critical" if complaint.get("severity") != "critical" else complaint["severity"]
+    
+    history.append({
+        "status": complaint["status"],
+        "note": f"⚠️ ESCALATED by citizen. Reason: {body.reason or 'Delayed resolution'}",
+        "officer": "SYSTEM",
+        "timestamp": now,
+    })
+
+    updates = {
+        "severity": new_severity,
+        "updated_at": now,
+        "history": history,
+    }
+
+    update_res = supabase.table("complaints").update(updates).eq("id", complaint_id).execute()
+    if not update_res.data:
+        raise HTTPException(status_code=500, detail="Failed to escalate complaint")
+
+    return {
+        "complaint": update_res.data[0],
+        "message": f"Complaint {complaint_id} has been escalated to CRITICAL priority."
     }
 
 # --- OFFICER ONLY: Update complaint status ---
