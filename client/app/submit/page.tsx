@@ -255,8 +255,36 @@ export default function SubmitComplaintPage() {
                                 <textarea className="input-field" rows={6}
                                     placeholder={form.language === "hi" ? "यहाँ अपनी समस्या विस्तार से लिखें..." : "Describe the issue in detail..."}
                                     value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                                    style={{ resize: "vertical" }} />
+                                    style={{ resize: "vertical", marginBottom: "16px" }} />
                             </div>
+
+                            <div className="form-group" style={{ background: "rgba(255,255,255,0.02)", padding: "16px", borderRadius: "12px", border: "1px dashed var(--border)" }}>
+                                <label className="form-label" style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+                                    <span>📸</span> Attach Photo Evidence <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(Optional)</span>
+                                </label>
+                                <input 
+                                    type="file" 
+                                    accept="image/*"
+                                    className="input-field" 
+                                    style={{ padding: "8px", fontSize: "13px", background: "rgba(0,0,0,0.2)", cursor: "pointer" }}
+                                    onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                            const reader = new FileReader();
+                                            reader.onloadend = () => {
+                                                setForm(f => ({ ...f, image_base64: reader.result as string }));
+                                            };
+                                            reader.readAsDataURL(file);
+                                        }
+                                    }} 
+                                />
+                                {form.image_base64 && (
+                                    <div style={{ marginTop: "12px", fontSize: "13px", color: "#4ade80", display: "flex", alignItems: "center", gap: "6px" }}>
+                                        ✅ Image attached successfully
+                                    </div>
+                                )}
+                            </div>
+
                             {!user && (
                                 <div className="form-group">
                                     <label className="form-label">Your Email (for tracking updates)</label>
@@ -303,6 +331,7 @@ export default function SubmitComplaintPage() {
                                 { label: "Title", value: form.title },
                                 { label: "State", value: form.state },
                                 { label: "Location", value: form.location },
+                                { label: "Photo Evidence", value: form.image_base64 ? "📸 Attached (Will upload on submit)" : "None" },
                             ].map(item => (
                                 <div key={item.label} style={{ display: "flex", gap: "16px", marginBottom: "14px", padding: "14px", background: "rgba(255,255,255,0.02)", borderRadius: "10px", border: "1px solid var(--border)" }}>
                                     <div style={{ minWidth: "90px", fontSize: "13px", color: "var(--text-muted)", fontWeight: 500 }}>{item.label}</div>
