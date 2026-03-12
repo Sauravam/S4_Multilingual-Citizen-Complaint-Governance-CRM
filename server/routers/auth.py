@@ -3,12 +3,25 @@ Auth router — Supabase Cloud PostgreSQL login.
 """
 from fastapi import APIRouter, HTTPException, Header, Depends
 from pydantic import BaseModel
+from typing import Optional
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from database import supabase
 import secrets
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+# --- Departments ---
+DEPARTMENTS = {
+    "PWD": "Public Works Department",
+    "WATER": "Water & Sanitation Board",
+    "ELEC": "Electricity Department",
+    "ENV": "Environment & Waste Dept.",
+    "HEALTH": "Public Health Department",
+    "POLICE": "Law & Order / Police",
+    "REVENUE": "Revenue & Land Records",
+    "GENERAL": "General Administration",
+}
 
 class LoginRequest(BaseModel):
     email: str
@@ -18,6 +31,8 @@ class RegisterRequest(BaseModel):
     email: str
     password: str
     name: str
+    role: str = "citizen"
+    department: Optional[str] = None
     preferred_language: str = "en"
     phone: str = ""
 
@@ -39,12 +54,22 @@ def login(body: LoginRequest):
             "email": user["email"],
             "name": user["name"],
             "role": user["role"],
+            "department": user.get("department", ""),
             "preferred_language": user.get("preferred_language", "en"),
         }
     }
 
 @router.post("/register")
 def register(body: RegisterRequest):
+    # Validate role
+    if body.role not in ("citizen", "officer", "admin"):
+        raise HTTPException(status_code=400, detail="Invalid role. Must be citizen, officer, or admin.")
+    
+    # Officers MUST have a department
+    if body.role == "officer":
+        if not body.department or body.department not in DEPARTMENTS:
+            raise HTTPException(status_code=400, detail=f"Officers must select a department. Valid: {list(DEPARTMENTS.keys())}")
+    
     res = supabase.table('users').select('*').eq('email', body.email).execute()
     if res.data and len(res.data) > 0:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -56,7 +81,8 @@ def register(body: RegisterRequest):
         "email": body.email,
         "name": body.name,
         "password": body.password,
-        "role": "citizen",
+        "role": body.role,
+        "department": body.department if body.role == "officer" else None,
         "preferred_language": body.preferred_language,
         "phone": body.phone,
     }
@@ -74,15 +100,21 @@ def register(body: RegisterRequest):
             "email": user["email"],
             "name": user["name"],
             "role": user["role"],
+            "department": user.get("department", ""),
             "preferred_language": user.get("preferred_language", "en"),
         }
     }
+
+@router.get("/departments")
+def list_departments():
+    """Returns department list for officer registration."""
+    return {"departments": [{"id": k, "name": v} for k, v in DEPARTMENTS.items()]}
 
 @router.get("/users")
 def list_users():
     res = supabase.table('users').select('*').execute()
     return [
-        {"id": u["id"], "email": u["email"], "name": u["name"], "role": u["role"]}
+        {"id": u["id"], "email": u["email"], "name": u["name"], "role": u["role"], "department": u.get("department", "")}
         for u in res.data
     ]
 

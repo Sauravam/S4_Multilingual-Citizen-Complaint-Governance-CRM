@@ -74,3 +74,6 @@ VALUES (
     '[{"status": "submitted", "note": "Complaint received.", "timestamp": "2026-03-02T12:00:00Z"}, {"status": "resolved", "note": "Water supply restored. Apologies for inconvenience.", "timestamp": "2026-03-11T12:00:00Z"}]'::jsonb,
     '2026-03-02T12:00:00Z', '2026-03-11T12:00:00Z', '2026-03-11T12:00:00Z'
 );
+
+-- 3. Add state column (run this if the table already exists)
+ALTER TABLE public.complaints ADD COLUMN IF NOT EXISTS state TEXT;

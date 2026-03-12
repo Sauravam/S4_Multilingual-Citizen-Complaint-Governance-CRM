@@ -28,12 +28,23 @@ const CATEGORIES = [
 
 const STEPS = ["Language & Category", "Complaint Details", "Location", "Review & Submit"];
 
+const INDIAN_STATES = [
+    "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
+    "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand",
+    "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur",
+    "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab",
+    "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura",
+    "Uttar Pradesh", "Uttarakhand", "West Bengal",
+    "Delhi", "Chandigarh", "Puducherry", "Jammu and Kashmir", "Ladakh",
+];
+
 interface FormData {
     language: string;
     category: string;
     title: string;
     description: string;
     location: string;
+    state: string;
     citizen_email: string;
 }
 
@@ -49,6 +60,7 @@ export default function SubmitComplaintPage() {
         title: "",
         description: "",
         location: "",
+        state: "",
         citizen_email: "",
     });
 
@@ -64,9 +76,11 @@ export default function SubmitComplaintPage() {
                 ...form,
                 citizen_email: user?.email || form.citizen_email || "anonymous@gov.in",
             };
+            const headers: Record<string, string> = { "Content-Type": "application/json" };
+            if (user?.email) headers["X-User-Email"] = user.email;
             const res = await fetch(`${API}/complaints`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers,
                 body: JSON.stringify(payload),
             });
             if (!res.ok) throw new Error("Submission failed. Please try again.");
@@ -87,7 +101,7 @@ export default function SubmitComplaintPage() {
     const isStepValid = () => {
         if (step === 0) return form.language && form.category;
         if (step === 1) return form.title.length > 5 && form.description.length > 10;
-        if (step === 2) return form.location.length > 3;
+        if (step === 2) return form.location.length > 3 && form.state.length > 0;
         return true;
     };
 
@@ -128,7 +142,7 @@ export default function SubmitComplaintPage() {
                             <Link href={`/track/${result.id}`} className="btn-primary">
                                 🔍 Track This Complaint
                             </Link>
-                            <button onClick={() => { setResult(null); setStep(0); setForm({ language: "en", category: "", title: "", description: "", location: "", citizen_email: "" }); }}
+                            <button onClick={() => { setResult(null); setStep(0); setForm({ language: "en", category: "", title: "", description: "", location: "", state: "", citizen_email: "" }); }}
                                 className="btn-secondary">
                                 + Submit Another
                             </button>
@@ -251,15 +265,23 @@ export default function SubmitComplaintPage() {
                         <div>
                             <h2 style={{ fontSize: "18px", fontWeight: 700, marginBottom: "24px" }}>Where is the Issue?</h2>
                             <div className="form-group">
+                                <label className="form-label">🗺️ State</label>
+                                <select className="input-field" value={form.state}
+                                    onChange={e => setForm(f => ({ ...f, state: e.target.value }))}>
+                                    <option value="">Select your State</option>
+                                    {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                                </select>
+                            </div>
+                            <div className="form-group">
                                 <label className="form-label">📍 Location / Address</label>
-                                <input className="input-field" placeholder="e.g. MG Road, near bus stop, Pune, Maharashtra"
+                                <input className="input-field" placeholder="e.g. MG Road, near bus stop, Pune"
                                     value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} />
                                 <p style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "8px" }}>
                                     Be as specific as possible — include landmark, street name, and city.
                                 </p>
                             </div>
                             <div style={{ background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.2)", borderRadius: "12px", padding: "16px", fontSize: "13px", color: "#60a5fa" }}>
-                                💡 GPS auto-detection coming soon. For now, type your address above.
+                                💡 GPS auto-detection coming soon. For now, select your state and type your address above.
                             </div>
                         </div>
                     )}
@@ -272,6 +294,7 @@ export default function SubmitComplaintPage() {
                                 { label: "Language", value: LANGUAGES.find(l => l.code === form.language)?.name || form.language },
                                 { label: "Category", value: CATEGORIES.find(c => c.value === form.category)?.label || form.category },
                                 { label: "Title", value: form.title },
+                                { label: "State", value: form.state },
                                 { label: "Location", value: form.location },
                             ].map(item => (
                                 <div key={item.label} style={{ display: "flex", gap: "16px", marginBottom: "14px", padding: "14px", background: "rgba(255,255,255,0.02)", borderRadius: "10px", border: "1px solid var(--border)" }}>
