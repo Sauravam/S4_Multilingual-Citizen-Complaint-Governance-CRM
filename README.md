@@ -93,8 +93,26 @@ server/
 └── services/
     └── ai_service.py      # Interfaces with Google Gemini to structure citizen-submitted text
 ```
+## 🧱 System Architecture
 
----
+```mermaid
+flowchart TD
+
+A[Citizen / Officer / Admin]
+
+A --> B[Frontend Layer<br/>Next.js + React + TypeScript]
+
+B --> C[REST API Communication]
+
+C --> D[FastAPI Backend]
+
+D --> E[AI Processing Layer<br/>Translation<br/>Categorization<br/>Analytics]
+
+E --> F[Database Layer<br/>Supabase / PostgreSQL]
+
+F --> G[Admin Dashboard]
+
+F --> H[Citizen Complaint Tracking]
 
 ## 🚀 Setup & Installation
 
