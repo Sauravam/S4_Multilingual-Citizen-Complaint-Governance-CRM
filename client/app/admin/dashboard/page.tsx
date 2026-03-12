@@ -26,8 +26,9 @@ export default function AdminAnalyticsDashboard() {
     const [trends, setTrends] = useState<Record<string, unknown> | null>(null);
     const [departments, setDepartments] = useState<Record<string, unknown>[]>([]);
     const [langStats, setLangStats] = useState<Record<string, number>>({});
+    const [slaBreaches, setSlaBreaches] = useState<Record<string, unknown>[]>([]);
     const [loading, setLoading] = useState(true);
-    const [user, setUser] = useState<{ name: string; role: string } | null>(null);
+    const [user, setUser] = useState<{ name: string; email: string; role: string } | null>(null);
 
     useEffect(() => {
         let u: any = null;
@@ -41,17 +42,19 @@ export default function AdminAnalyticsDashboard() {
 
         const load = async () => {
             try {
-                const [sumRes, trendRes, deptRes, langRes] = await Promise.all([
+                const [sumRes, trendRes, deptRes, langRes, slaRes] = await Promise.all([
                     fetch(`${API}/analytics/summary`, { headers: hdrs }),
                     fetch(`${API}/analytics/trends`, { headers: hdrs }),
                     fetch(`${API}/analytics/departments`, { headers: hdrs }),
                     fetch(`${API}/analytics/languages`, { headers: hdrs }),
+                    fetch(`${API}/analytics/sla`, { headers: hdrs }),
                 ]);
-                const [sum, tr, dep, lang] = await Promise.all([sumRes.json(), trendRes.json(), deptRes.json(), langRes.json()]);
+                const [sum, tr, dep, lang, sla] = await Promise.all([sumRes.json(), trendRes.json(), deptRes.json(), langRes.json(), slaRes.json()]);
                 setSummary(sum);
                 setTrends(tr);
                 setDepartments(dep.departments || []);
                 setLangStats(lang.by_language || {});
+                setSlaBreaches(sla.sla_breaches || []);
             } finally { setLoading(false); }
         };
         load();
@@ -121,17 +124,18 @@ export default function AdminAnalyticsDashboard() {
 
                 {/* Top KPIs */}
                 {summary && (
-                    <div className="grid-4" style={{ marginBottom: "28px" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "16px", marginBottom: "28px" }}>
                         {[
                             { label: "Total Complaints", value: summary.total as number, icon: "📋", color: "#60a5fa" },
                             { label: "Resolution Rate", value: `${summary.resolution_rate}%`, icon: "✅", color: "#4ade80" },
                             { label: "Avg Resolution", value: `${summary.avg_resolution_days}d`, icon: "⏱️", color: "#f97316" },
                             { label: "Active Issues", value: (summary.total as number) - ((summary.by_status as Record<string, number>).resolved || 0), icon: "🔥", color: "#fbbf24" },
-                        ].map(s => (
-                            <div key={s.label} className="stat-card">
+                            { label: "⚠️ SLA Breached", value: summary.sla_breached as number, icon: "🚨", color: "#ef4444", urgent: true },
+                        ].map((s: any) => (
+                            <div key={s.label} className="stat-card" style={s.urgent && (s.value as number) > 0 ? { borderColor: "rgba(239,68,68,0.35)", background: "rgba(239,68,68,0.05)" } : {}}>
                                 <div style={{ fontSize: "26px", marginBottom: "4px" }}>{s.icon}</div>
                                 <div style={{ fontSize: "30px", fontWeight: 800, color: s.color, fontFamily: "'Sora', sans-serif" }}>{s.value}</div>
-                                <div style={{ fontSize: "13px", color: "var(--text-secondary)", marginTop: "4px" }}>{s.label}</div>
+                                <div style={{ fontSize: "12px", color: s.urgent && (s.value as number) > 0 ? "#ef4444" : "var(--text-secondary)", marginTop: "4px", fontWeight: s.urgent ? 600 : 400 }}>{s.label}</div>
                             </div>
                         ))}
                     </div>
@@ -279,14 +283,53 @@ export default function AdminAnalyticsDashboard() {
                     </div>
                 </div>
 
+                {/* SLA Breach Table */}
+                {slaBreaches.length > 0 && (
+                    <div style={{ marginTop: "24px" }}>
+                        <div className="glass-card" style={{ padding: "0", overflow: "hidden", border: "1px solid rgba(239,68,68,0.25)" }}>
+                            <div style={{ padding: "14px 20px", borderBottom: "1px solid rgba(239,68,68,0.2)", background: "rgba(239,68,68,0.06)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                <div>
+                                    <h3 style={{ fontSize: "15px", fontWeight: 700, color: "#ef4444", marginBottom: "2px" }}>🚨 SLA Breach Alert</h3>
+                                    <p style={{ fontSize: "12px", color: "var(--text-muted)" }}>{slaBreaches.length} complaints unresolved for more than 7 days — immediate action required</p>
+                                </div>
+                                <span style={{ padding: "4px 12px", borderRadius: "20px", background: "rgba(239,68,68,0.15)", color: "#ef4444", fontSize: "12px", fontWeight: 700 }}>URGENT</span>
+                            </div>
+                            <div style={{ overflowX: "auto" }}>
+                                <table className="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Complaint ID</th>
+                                            <th>Title</th>
+                                            <th>Department</th>
+                                            <th>Status</th>
+                                            <th>Days Overdue</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {slaBreaches.map((b: any, i: number) => (
+                                            <tr key={b.id} style={{ animation: `fadeInUp 0.3s ease-out ${i * 0.05}s both` }}>
+                                                <td style={{ fontFamily: "monospace", fontSize: "12px", color: "var(--accent-orange)" }}>{b.id}</td>
+                                                <td style={{ fontWeight: 600, maxWidth: "200px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.title}</td>
+                                                <td><span style={{ fontSize: "11px", fontWeight: 600, color: "#60a5fa", background: "rgba(59,130,246,0.1)", padding: "2px 8px", borderRadius: "6px" }}>{b.department || "—"}</span></td>
+                                                <td><span style={{ fontSize: "11px", fontWeight: 600, color: "#fbbf24", background: "rgba(251,191,36,0.1)", padding: "2px 8px", borderRadius: "6px", textTransform: "capitalize" }}>{(b.status as string).replace("_", " ")}</span></td>
+                                                <td><span style={{ color: "#ef4444", fontWeight: 700, fontSize: "13px" }}>+{b.days_overdue}d</span></td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* AI Insight */}
                 <div style={{ marginTop: "20px", background: "rgba(249,115,22,0.06)", border: "1px solid rgba(249,115,22,0.2)", borderRadius: "16px", padding: "24px" }}>
                     <h3 style={{ fontSize: "15px", fontWeight: 600, marginBottom: "12px" }}>🤖 AI Governance Insights</h3>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", fontSize: "14px", color: "var(--text-secondary)" }}>
                         <div>💡 <strong style={{ color: "var(--text-primary)" }}>Roads complaints</strong> peak on Mondays — schedule extra PWD resources.</div>
-                        <div>📊 <strong style={{ color: "var(--text-primary)" }}>Water Board</strong> has highest resolution rate (100%). Best practice model.</div>
-                        <div>🌍 <strong style={{ color: "var(--text-primary)" }}>33% of complaints</strong> submitted in Hindi — multilingual support critical.</div>
-                        <div>⚡ <strong style={{ color: "var(--text-primary)" }}>Critical severity</strong> issues resolve 2.3x faster than medium ones.</div>
+                        <div>📊 <strong style={{ color: "var(--text-primary)" }}>Fastest dept</strong> resolves 3x quicker — use as best practice model for others.</div>
+                        <div>🌍 <strong style={{ color: "var(--text-primary)" }}>Multilingual AI</strong> auto-translates complaints — no language barrier for citizens.</div>
+                        <div>⚡ <strong style={{ color: "var(--text-primary)" }}>SLA tracking</strong> flags overdue complaints so nothing slips through the cracks.</div>
                     </div>
                 </div>
             </div>
