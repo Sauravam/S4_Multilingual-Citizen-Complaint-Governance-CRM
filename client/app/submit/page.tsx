@@ -2,6 +2,7 @@
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useLanguage } from "../../context/LanguageContext";
 
 const API = "/api";
 
@@ -28,17 +29,30 @@ const CATEGORIES = [
 
 const STEPS = ["Language & Category", "Complaint Details", "Location", "Review & Submit"];
 
+const INDIAN_STATES = [
+    "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
+    "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand",
+    "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur",
+    "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab",
+    "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura",
+    "Uttar Pradesh", "Uttarakhand", "West Bengal",
+    "Delhi", "Chandigarh", "Puducherry", "Jammu and Kashmir", "Ladakh",
+];
+
 interface FormData {
     language: string;
     category: string;
     title: string;
     description: string;
     location: string;
+    state: string;
     citizen_email: string;
+    image_base64: string | null;
 }
 
 export default function SubmitComplaintPage() {
     const router = useRouter();
+    const { t } = useLanguage();
     const [step, setStep] = useState(0);
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<{ id: string; department: string; severity: string; category: string } | null>(null);
@@ -49,7 +63,9 @@ export default function SubmitComplaintPage() {
         title: "",
         description: "",
         location: "",
+        state: "",
         citizen_email: "",
+        image_base64: null,
     });
 
     const user = typeof window !== "undefined"
@@ -62,11 +78,16 @@ export default function SubmitComplaintPage() {
         try {
             const payload = {
                 ...form,
-                citizen_email: user?.email || form.citizen_email || "anonymous@gov.in",
+                citizen_email: user?.email,
             };
+            const headers: Record<string, string> = { 
+                "Content-Type": "application/json",
+                "X-User-Email": user.email 
+            };
+            
             const res = await fetch(`${API}/complaints`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers,
                 body: JSON.stringify(payload),
             });
             if (!res.ok) throw new Error("Submission failed. Please try again.");
@@ -87,7 +108,7 @@ export default function SubmitComplaintPage() {
     const isStepValid = () => {
         if (step === 0) return form.language && form.category;
         if (step === 1) return form.title.length > 5 && form.description.length > 10;
-        if (step === 2) return form.location.length > 3;
+        if (step === 2) return form.location.length > 3 && form.state.length > 0;
         return true;
     };
 
@@ -128,7 +149,7 @@ export default function SubmitComplaintPage() {
                             <Link href={`/track/${result.id}`} className="btn-primary">
                                 🔍 Track This Complaint
                             </Link>
-                            <button onClick={() => { setResult(null); setStep(0); setForm({ language: "en", category: "", title: "", description: "", location: "", citizen_email: "" }); }}
+                            <button onClick={() => { setResult(null); setStep(0); setForm({ language: "en", category: "", title: "", description: "", location: "", state: "", citizen_email: "", image_base64: "" }); }}
                                 className="btn-secondary">
                                 + Submit Another
                             </button>
@@ -145,10 +166,10 @@ export default function SubmitComplaintPage() {
                 {/* Header */}
                 <div style={{ marginBottom: "36px" }}>
                     <h1 style={{ fontFamily: "'Sora', sans-serif", fontSize: "28px", fontWeight: 700, marginBottom: "8px" }}>
-                        📝 Submit a Complaint
+                        {t("submit.title")}
                     </h1>
                     <p style={{ color: "var(--text-secondary)" }}>
-                        Submit in any language — our AI will translate and route it automatically.
+                        {t("submit.subtitle")}
                     </p>
                 </div>
 
@@ -172,7 +193,7 @@ export default function SubmitComplaintPage() {
                                 )}
                             </div>
                             <div style={{ fontSize: "11px", color: i === step ? "var(--accent-orange)" : "var(--text-muted)", marginTop: "6px", fontWeight: 600 }}>
-                                {s}
+                                {t(`submit.step${i + 1}`)}
                             </div>
                         </div>
                     ))}
@@ -234,8 +255,36 @@ export default function SubmitComplaintPage() {
                                 <textarea className="input-field" rows={6}
                                     placeholder={form.language === "hi" ? "यहाँ अपनी समस्या विस्तार से लिखें..." : "Describe the issue in detail..."}
                                     value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                                    style={{ resize: "vertical" }} />
+                                    style={{ resize: "vertical", marginBottom: "16px" }} />
                             </div>
+
+                            <div className="form-group" style={{ background: "rgba(255,255,255,0.02)", padding: "16px", borderRadius: "12px", border: "1px dashed var(--border)" }}>
+                                <label className="form-label" style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+                                    <span>📸</span> Attach Photo Evidence <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>(Optional)</span>
+                                </label>
+                                <input 
+                                    type="file" 
+                                    accept="image/*"
+                                    className="input-field" 
+                                    style={{ padding: "8px", fontSize: "13px", background: "rgba(0,0,0,0.2)", cursor: "pointer" }}
+                                    onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                            const reader = new FileReader();
+                                            reader.onloadend = () => {
+                                                setForm(f => ({ ...f, image_base64: reader.result as string }));
+                                            };
+                                            reader.readAsDataURL(file);
+                                        }
+                                    }} 
+                                />
+                                {form.image_base64 && (
+                                    <div style={{ marginTop: "12px", fontSize: "13px", color: "#4ade80", display: "flex", alignItems: "center", gap: "6px" }}>
+                                        ✅ Image attached successfully
+                                    </div>
+                                )}
+                            </div>
+
                             {!user && (
                                 <div className="form-group">
                                     <label className="form-label">Your Email (for tracking updates)</label>
@@ -251,15 +300,23 @@ export default function SubmitComplaintPage() {
                         <div>
                             <h2 style={{ fontSize: "18px", fontWeight: 700, marginBottom: "24px" }}>Where is the Issue?</h2>
                             <div className="form-group">
+                                <label className="form-label">🗺️ State</label>
+                                <select className="input-field" value={form.state}
+                                    onChange={e => setForm(f => ({ ...f, state: e.target.value }))}>
+                                    <option value="">Select your State</option>
+                                    {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                                </select>
+                            </div>
+                            <div className="form-group">
                                 <label className="form-label">📍 Location / Address</label>
-                                <input className="input-field" placeholder="e.g. MG Road, near bus stop, Pune, Maharashtra"
+                                <input className="input-field" placeholder="e.g. MG Road, near bus stop, Pune"
                                     value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} />
                                 <p style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "8px" }}>
                                     Be as specific as possible — include landmark, street name, and city.
                                 </p>
                             </div>
                             <div style={{ background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.2)", borderRadius: "12px", padding: "16px", fontSize: "13px", color: "#60a5fa" }}>
-                                💡 GPS auto-detection coming soon. For now, type your address above.
+                                💡 GPS auto-detection coming soon. For now, select your state and type your address above.
                             </div>
                         </div>
                     )}
@@ -272,7 +329,9 @@ export default function SubmitComplaintPage() {
                                 { label: "Language", value: LANGUAGES.find(l => l.code === form.language)?.name || form.language },
                                 { label: "Category", value: CATEGORIES.find(c => c.value === form.category)?.label || form.category },
                                 { label: "Title", value: form.title },
+                                { label: "State", value: form.state },
                                 { label: "Location", value: form.location },
+                                { label: "Photo Evidence", value: form.image_base64 ? "📸 Attached (Will upload on submit)" : "None" },
                             ].map(item => (
                                 <div key={item.label} style={{ display: "flex", gap: "16px", marginBottom: "14px", padding: "14px", background: "rgba(255,255,255,0.02)", borderRadius: "10px", border: "1px solid var(--border)" }}>
                                     <div style={{ minWidth: "90px", fontSize: "13px", color: "var(--text-muted)", fontWeight: 500 }}>{item.label}</div>
