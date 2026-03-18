@@ -21,6 +21,9 @@ export default function Navbar() {
         } catch { }
     }, [pathname]);
 
+    // Hide navbar on SQL editor and platform pages
+    if (pathname?.startsWith("/sql-editor") || pathname?.startsWith("/platform")) return null;
+
     const logout = () => {
         localStorage.removeItem("govtech_user");
         localStorage.removeItem("govtech_token");

@@ -1,0 +1,1108 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+/* ================================================
+   PLATFORM — Global Layout & Sidebar
+================================================ */
+
+.platform-root {
+  display: flex;
+  height: 100vh;
+  background: #0a0f1a;
+  color: #e2e8f0;
+  font-family: 'Inter', sans-serif;
+  overflow: hidden;
+}
+
+/* ---------- GLOBAL SIDEBAR ---------- */
+.global-sidebar {
+  width: 220px;
+  min-width: 220px;
+  background: #080d18;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  transition: width 0.25s ease, min-width 0.25s ease;
+  overflow: hidden;
+  flex-shrink: 0;
+  z-index: 50;
+}
+.global-sidebar.collapsed {
+  width: 56px;
+  min-width: 56px;
+}
+
+/* Sidebar brand */
+.gs-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  min-height: 56px;
+  overflow: hidden;
+}
+.gs-brand-logo {
+  width: 28px;
+  height: 28px;
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+}
+.gs-brand-text {
+  font-family: 'Sora', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: #f1f5f9;
+  white-space: nowrap;
+  overflow: hidden;
+  opacity: 1;
+  transition: opacity 0.2s;
+}
+.global-sidebar.collapsed .gs-brand-text {
+  opacity: 0;
+  width: 0;
+}
+
+/* Sidebar section */
+.gs-section {
+  padding: 16px 8px 8px;
+}
+.gs-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: #64748b;
+  padding: 0 8px 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  opacity: 1;
+  transition: opacity 0.2s;
+}
+.global-sidebar.collapsed .gs-section-title {
+  opacity: 0;
+  height: 0;
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+}
+
+/* Nav item */
+.gs-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  border: none;
+  background: none;
+  width: 100%;
+  font-family: 'Inter', sans-serif;
+}
+.gs-nav-item:hover {
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.05);
+}
+.gs-nav-item.active {
+  color: #f97316;
+  background: rgba(249, 115, 22, 0.1);
+}
+.gs-nav-item.disabled {
+  opacity: 0.35;
+  cursor: default;
+  pointer-events: none;
+}
+.gs-nav-icon {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.gs-nav-label {
+  opacity: 1;
+  transition: opacity 0.2s;
+  overflow: hidden;
+}
+.global-sidebar.collapsed .gs-nav-label {
+  opacity: 0;
+  width: 0;
+}
+
+/* Sidebar divider */
+.gs-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.06);
+  margin: 8px 12px;
+}
+
+/* Collapse toggle */
+.gs-toggle {
+  margin-top: auto;
+  padding: 12px 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+.gs-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(255, 255, 255, 0.04);
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+}
+.gs-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+}
+
+/* ---------- MAIN CONTENT ---------- */
+.platform-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #0c1220;
+}
+
+/* ================================================
+   LANDING PAGE
+================================================ */
+.landing-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 40px;
+  text-align: center;
+  overflow-y: auto;
+}
+.landing-icon {
+  width: 72px;
+  height: 72px;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.15), rgba(249, 115, 22, 0.05));
+  border: 1px solid rgba(249, 115, 22, 0.2);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f97316;
+  margin-bottom: 24px;
+}
+.landing-title {
+  font-family: 'Sora', sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin-bottom: 10px;
+}
+.landing-subtitle {
+  font-size: 15px;
+  color: #64748b;
+  max-width: 500px;
+  line-height: 1.6;
+  margin-bottom: 40px;
+}
+
+.landing-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  max-width: 720px;
+  width: 100%;
+}
+.landing-card {
+  background: rgba(15, 25, 50, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 24px 20px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+  display: block;
+}
+.landing-card:hover {
+  border-color: rgba(249, 115, 22, 0.3);
+  background: rgba(249, 115, 22, 0.04);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+.landing-card-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+  font-size: 18px;
+}
+.landing-card-icon.sql {
+  background: rgba(59, 130, 246, 0.12);
+  color: #60a5fa;
+}
+.landing-card-icon.pipeline {
+  background: rgba(34, 197, 94, 0.12);
+  color: #4ade80;
+}
+.landing-card-icon.ml {
+  background: rgba(167, 139, 250, 0.12);
+  color: #a78bfa;
+}
+.landing-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin-bottom: 6px;
+}
+.landing-card-desc {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.5;
+}
+.landing-card.disabled {
+  opacity: 0.4;
+  cursor: default;
+  pointer-events: none;
+}
+
+/* ================================================
+   SQL EDITOR PAGE — Top Bar
+================================================ */
+.sql-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 50px;
+  padding: 0 16px;
+  background: rgba(8, 13, 24, 0.95);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+  z-index: 40;
+}
+.sql-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.sql-topbar-title {
+  font-family: 'Sora', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  color: #e2e8f0;
+}
+.sql-topbar-center {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.sql-topbar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: transparent;
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: 'Inter', sans-serif;
+  white-space: nowrap;
+}
+.sql-topbar-btn:hover {
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+.sql-topbar-btn.primary {
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  color: #fff;
+  border-color: transparent;
+}
+.sql-topbar-btn.primary:hover {
+  box-shadow: 0 4px 16px rgba(249, 115, 22, 0.35);
+  transform: translateY(-1px);
+}
+.sql-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.sql-topbar-icon-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+}
+.sql-topbar-icon-btn:hover {
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.06);
+}
+.sql-topbar-icon-btn .notif-dot {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 6px;
+  height: 6px;
+  background: #f97316;
+  border-radius: 50%;
+}
+.sql-user-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.15s;
+}
+.sql-user-avatar:hover {
+  border-color: #f97316;
+}
+
+/* ================================================
+   SQL EDITOR — Body (workspace sidebar + notebook)
+================================================ */
+.sql-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* ---------- WORKSPACE SIDEBAR (Data Explorer) ---------- */
+.ws-sidebar {
+  width: 260px;
+  min-width: 260px;
+  background: rgba(8, 13, 24, 0.6);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  transition: width 0.25s ease, min-width 0.25s ease, opacity 0.25s;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.ws-sidebar.collapsed {
+  width: 0;
+  min-width: 0;
+  border-right: none;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ws-sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.ws-sidebar-header h3 {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+.ws-toggle-btn {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.ws-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #e2e8f0;
+}
+
+/* Search */
+.ws-search {
+  padding: 10px 14px;
+}
+.ws-search-wrap {
+  position: relative;
+}
+.ws-search-wrap svg {
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #64748b;
+}
+.ws-search input {
+  width: 100%;
+  padding: 7px 10px 7px 30px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.03);
+  color: #e2e8f0;
+  font-size: 12px;
+  outline: none;
+  font-family: 'Inter', sans-serif;
+  transition: border-color 0.2s;
+}
+.ws-search input:focus {
+  border-color: #f97316;
+}
+.ws-search input::placeholder {
+  color: #475569;
+}
+
+/* DB tree */
+.ws-db-label {
+  padding: 8px 14px 4px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.ws-db-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+.ws-db-name svg {
+  color: #f97316;
+}
+.ws-tables-label {
+  padding: 4px 14px 4px 28px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.ws-tables {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 6px 14px;
+}
+
+/* Table items */
+.ws-table-item {
+  border-radius: 7px;
+  margin-bottom: 1px;
+}
+.ws-table-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  cursor: pointer;
+  border-radius: 7px;
+  transition: all 0.12s;
+  user-select: none;
+}
+.ws-table-header:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+.ws-table-header.active {
+  background: rgba(249, 115, 22, 0.07);
+}
+.ws-table-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: rgba(59, 130, 246, 0.1);
+  color: #60a5fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.ws-table-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: #e2e8f0;
+  flex: 1;
+}
+.ws-table-chevron {
+  color: #475569;
+  transition: transform 0.2s;
+}
+.ws-table-chevron.open {
+  transform: rotate(90deg);
+}
+
+.ws-table-cols {
+  display: none;
+  padding: 2px 0 4px 42px;
+}
+.ws-table-cols.open {
+  display: block;
+}
+.ws-col-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+  font-size: 11px;
+  color: #94a3b8;
+}
+.ws-col-item svg {
+  color: #475569;
+  flex-shrink: 0;
+}
+.ws-col-type {
+  font-size: 9px;
+  color: #475569;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 1px 5px;
+  border-radius: 3px;
+  margin-left: auto;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Floating open button for ws sidebar */
+.ws-open-btn {
+  position: absolute;
+  left: 4px;
+  top: 60px;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #0f1829;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 35;
+  transition: all 0.2s;
+  opacity: 0;
+  pointer-events: none;
+}
+.ws-open-btn.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+.ws-open-btn:hover {
+  background: rgba(249, 115, 22, 0.1);
+  border-color: #f97316;
+  color: #f97316;
+}
+
+/* ================================================
+   SQL NOTEBOOK WORKSPACE
+================================================ */
+.sql-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+.sql-workspace {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 28px 60px;
+}
+.sql-workspace-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.sql-workspace-header h2 {
+  font-family: 'Sora', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+.sql-workspace-header span {
+  font-size: 11px;
+  color: #475569;
+}
+
+/* ================================================
+   SQL CELL
+================================================ */
+.sql-cell {
+  background: #0f1829;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  margin-bottom: 16px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  overflow: hidden;
+}
+.sql-cell:hover {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+.sql-cell.running {
+  border-color: rgba(249, 115, 22, 0.35);
+  box-shadow: 0 0 16px rgba(249, 115, 22, 0.06);
+}
+.sql-cell.completed {
+  border-color: rgba(34, 197, 94, 0.25);
+}
+.sql-cell.error {
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+.sql-cell-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  background: rgba(255, 255, 255, 0.015);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.sql-cell-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sql-cell-number {
+  font-size: 11px;
+  font-weight: 600;
+  color: #f97316;
+  font-family: 'JetBrains Mono', monospace;
+}
+.sql-cell-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: #475569;
+}
+.sql-cell-status .dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #475569;
+}
+.sql-cell-status .dot.running {
+  background: #f97316;
+  animation: pulse-dot 1s infinite;
+}
+.sql-cell-status .dot.completed {
+  background: #22c55e;
+}
+.sql-cell-status .dot.error {
+  background: #ef4444;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.sql-cell-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.sql-cell-action-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.sql-cell-action-btn:hover {
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.06);
+}
+.sql-cell-action-btn.run-btn:hover {
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.1);
+}
+.sql-cell-action-btn.delete-btn:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.08);
+}
+
+/* Editor */
+.sql-cell-editor {
+  position: relative;
+  min-height: 80px;
+}
+.sql-cell-textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 14px 14px 14px 48px;
+  background: transparent;
+  border: none;
+  color: #e2e8f0;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 13px;
+  line-height: 1.7;
+  resize: vertical;
+  outline: none;
+  tab-size: 2;
+  white-space: pre;
+  overflow-x: auto;
+}
+.sql-cell-textarea::placeholder {
+  color: #334155;
+}
+.sql-cell-line-numbers {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 38px;
+  padding: 14px 6px 14px 0;
+  text-align: right;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  line-height: 1.7;
+  color: #334155;
+  pointer-events: none;
+  user-select: none;
+  border-right: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+/* Add cell */
+.sql-add-cell-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px;
+  border: 1px dashed rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  background: transparent;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Inter', sans-serif;
+}
+.sql-add-cell-btn:hover {
+  border-color: rgba(249, 115, 22, 0.25);
+  color: #f97316;
+  background: rgba(249, 115, 22, 0.03);
+}
+
+/* ================================================
+   RESULTS
+================================================ */
+.sql-result {
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(0, 0, 0, 0.12);
+}
+.sql-result-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+.sql-result-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  color: #475569;
+}
+.sql-result-info .row-count {
+  color: #22c55e;
+  font-weight: 600;
+}
+.sql-result-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.sql-result-table-wrap {
+  overflow-x: auto;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.sql-result-table-wrap.expanded {
+  max-height: none;
+}
+.sql-result-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.sql-result-table th {
+  text-align: left;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.02);
+  color: #64748b;
+  font-weight: 600;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+.sql-result-table td {
+  padding: 7px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.025);
+  color: #94a3b8;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+}
+.sql-result-table tr:hover td {
+  background: rgba(255, 255, 255, 0.015);
+}
+
+/* Pagination */
+.sql-result-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  font-size: 11px;
+  color: #475569;
+}
+.sql-pagination-btns {
+  display: flex;
+  gap: 3px;
+}
+.sql-page-btn {
+  padding: 3px 8px;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: transparent;
+  color: #94a3b8;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.12s;
+  font-family: 'Inter', sans-serif;
+}
+.sql-page-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+.sql-page-btn.active {
+  background: rgba(249, 115, 22, 0.12);
+  color: #f97316;
+  border-color: rgba(249, 115, 22, 0.25);
+}
+.sql-page-btn:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
+/* Spinner */
+.sql-executing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 28px 14px;
+  color: #475569;
+  font-size: 12px;
+}
+.sql-executing .exec-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(249, 115, 22, 0.15);
+  border-top-color: #f97316;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Error */
+.sql-error-output {
+  padding: 14px;
+  background: rgba(239, 68, 68, 0.05);
+  border-top: 1px solid rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ================================================
+   QUERY HISTORY DRAWER
+================================================ */
+.sql-history-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 60;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s;
+}
+.sql-history-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+.sql-history-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 400px;
+  max-width: 90vw;
+  height: 100vh;
+  background: #0c1220;
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
+  z-index: 61;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+}
+.sql-history-drawer.open {
+  transform: translateX(0);
+}
+.sql-history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.sql-history-header h3 {
+  font-family: 'Sora', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+}
+.sql-history-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+}
+.sql-history-item {
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.sql-history-item:hover {
+  border-color: rgba(249, 115, 22, 0.25);
+  background: rgba(249, 115, 22, 0.03);
+}
+.sql-history-item-query {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #94a3b8;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 50px;
+  overflow: hidden;
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+.sql-history-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 10px;
+  color: #475569;
+}
+.sql-history-item-meta .status-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+}
+.sql-history-item-meta .status-dot.success { background: #22c55e; }
+.sql-history-item-meta .status-dot.error { background: #ef4444; }
+
+.sql-history-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 50px 20px;
+  color: #475569;
+  font-size: 12px;
+  text-align: center;
+  gap: 10px;
+}
+
+/* ================================================
+   TOAST
+================================================ */
+.sql-toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transform: translateY(70px);
+  opacity: 0;
+  transition: all 0.25s ease;
+  pointer-events: none;
+}
+.sql-toast.show {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+.sql-toast.success {
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.25);
+  color: #4ade80;
+}
+.sql-toast.info {
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  color: #60a5fa;
+}
