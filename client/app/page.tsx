@@ -35,8 +35,39 @@ export default function HomePage() {
 
   return (
     <main className="page-container">
+      {/* LIVE SIMULATION TOP BANNER */}
+      <div style={{
+          background: "linear-gradient(90deg, #1e293b, #0f172a, #1e293b)",
+          borderBottom: "1px solid rgba(249, 115, 22, 0.1)",
+          padding: "10px 24px",
+          textAlign: "center",
+          fontSize: "13px",
+          color: "#94a3b8",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "12px",
+          position: "sticky",
+          top: "0",
+          zIndex: 100,
+          backdropFilter: "blur(12px)"
+      }}>
+          <span style={{ 
+              display: "flex", alignItems: "center", gap: "6px", 
+              color: "#f97316", fontWeight: 700, textTransform: "uppercase", 
+              letterSpacing: "0.5px" 
+          }}>
+              <span style={{ width: "6px", height: "6px", background: "#f97316", borderRadius: "50%", animation: "pulse 1.5s infinite" }} />
+              Simulation Mode
+          </span>
+          <span>Explore the inner technical workings of the CRM pipeline.</span>
+          <Link href="/platform/simulation" style={{ color: "#f97316", textDecoration: "none", fontWeight: 700, marginLeft: "4px", borderBottom: "1px solid #f97316" }}>
+              Launch Full Stimulation →
+          </Link>
+      </div>
+
       {/* Hero */}
-      <section style={{ position: "relative", padding: "80px 24px 100px", textAlign: "center", overflow: "hidden" }}>
+      <section style={{ position: "relative", padding: "60px 24px 100px", textAlign: "center", overflow: "hidden" }}>
         <div className="hero-bg" />
 
         {/* Floating language chips */}
@@ -191,8 +222,72 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Simulation Side of Home Page */}
+      <section style={{ 
+        padding: "80px 24px", 
+        background: "radial-gradient(circle at 10% 20%, rgba(249, 115, 22, 0.05) 0%, transparent 40%)",
+        borderTop: "1px solid rgba(255, 255, 255, 0.03)",
+        borderBottom: "1px solid rgba(255, 255, 255, 0.03)"
+      }}>
+        <div style={{ maxWidth: "1200px", margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "60px", alignItems: "center" }}>
+          <div>
+            <div style={{ color: "#f97316", fontWeight: 700, fontSize: "14px", marginBottom: "16px", textTransform: "uppercase", letterSpacing: "1px" }}>
+              Technical Stimulation
+            </div>
+            <h2 style={{ fontFamily: "'Sora', sans-serif", fontSize: "36px", fontWeight: 800, color: "#f1f5f9", marginBottom: "20px", lineHeight: 1.2 }}>
+              See the <span className="gradient-text">Inner Workings</span> of GovTech
+            </h2>
+            <p style={{ color: "#94a3b8", fontSize: "18px", lineHeight: 1.7, marginBottom: "32px" }}>
+              Ever wondered how your local language complaint reaches the right officer in seconds? 
+              Launch our technical simulation to track data packets moving through API Gateways, 
+              ML translation layers, and high-performance databases in real-time.
+            </p>
+            <Link href="/platform/simulation" className="btn-primary" style={{ display: "inline-block", fontSize: "16px", padding: "14px 32px" }}>
+              🛠️ View Technical Simulation
+            </Link>
+          </div>
+          
+          <div style={{ position: "relative" }}>
+            <div style={{ 
+              background: "rgba(15, 23, 42, 0.6)", 
+              border: "1px solid rgba(249, 115, 22, 0.2)", 
+              borderRadius: "24px", 
+              padding: "32px",
+              boxShadow: "0 20px 50px rgba(0,0,0,0.3)",
+              backdropFilter: "blur(8px)"
+            }}>
+              <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
+                <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#ef4444" }} />
+                <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#fbbf24" }} />
+                <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#22c55e" }} />
+              </div>
+              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "13px", color: "#64748b" }}>
+                <div style={{ color: "#f97316", marginBottom: "8px" }}>// Initializing GovTech Pipeline...</div>
+                <div style={{ marginBottom: "4px" }}>COMPLAINT_RECEIVED: "Garbage near main market"</div>
+                <div style={{ color: "#3b82f6", marginBottom: "4px" }}>→ ML_ENGINE: Detecting Language (EN)...</div>
+                <div style={{ color: "#a78bfa", marginBottom: "4px" }}>→ ML_ENGINE: Category (Sanitation)...</div>
+                <div style={{ color: "#22c55e", marginBottom: "4px" }}>→ ROUTER: Notifying Dept. XYZ...</div>
+                <div style={{ color: "#94a3b8", marginTop: "12px", fontStyle: "italic" }}>[SYSTEM_HEALTH: 98% | LATENCY: 124ms]</div>
+              </div>
+            </div>
+            {/* Decor logic */}
+            <div style={{ 
+              position: "absolute", 
+              top: "-20px", 
+              right: "-20px", 
+              width: "80px", 
+              height: "80px", 
+              background: "rgba(249, 115, 22, 0.1)", 
+              borderRadius: "50%", 
+              filter: "blur(20px)",
+              zIndex: -1 
+            }} />
+          </div>
+        </div>
+      </section>
+
       {/* CTA */}
-      <section style={{ padding: "60px 24px", textAlign: "center", background: "var(--bg-secondary)" }}>
+      <section style={{ padding: "80px 24px", textAlign: "center", background: "var(--bg-secondary)" }}>
         <h2 style={{ fontFamily: "'Sora', sans-serif", fontSize: "32px", fontWeight: 700, marginBottom: "16px" }}>
           Ready to Report a Civic Issue?
         </h2>
@@ -218,6 +313,10 @@ export default function HomePage() {
         @keyframes float {
           from { transform: translateY(0px); }
           to { transform: translateY(-10px); }
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.5; transform: scale(1.2); }
         }
       `}</style>
     </main>

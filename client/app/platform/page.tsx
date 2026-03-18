@@ -25,6 +25,16 @@ export default function PlatformLandingPage() {
           </div>
         </Link>
 
+        <Link href="/platform/simulation" className="landing-card">
+          <div className="landing-card-icon ml">
+            <BrainCircuit size={24} />
+          </div>
+          <div className="landing-card-title">Technical Simulation</div>
+          <div className="landing-card-desc">
+            Visualize the end-to-end technical workflow and architecture of the governance platform.
+          </div>
+        </Link>
+
         <div className="landing-card disabled">
           <div className="landing-card-icon pipeline">
             <GitBranch size={24} />

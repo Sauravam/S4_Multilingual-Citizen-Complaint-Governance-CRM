@@ -7,6 +7,7 @@ const NAV_LINKS = [
     { href: "/", label: "Home" },
     { href: "/submit", label: "Submit Complaint" },
     { href: "/track", label: "Track Complaint" },
+    { href: "/platform/simulation", label: "Simulation" },
 ];
 
 export default function Navbar() {
@@ -21,8 +22,8 @@ export default function Navbar() {
         } catch { }
     }, [pathname]);
 
-    // Hide navbar on SQL editor and platform pages
-    if (pathname?.startsWith("/sql-editor") || pathname?.startsWith("/platform")) return null;
+    // Hide navbar on SQL editor and platform pages (except simulation)
+    if (pathname?.startsWith("/sql-editor") || (pathname?.startsWith("/platform") && pathname !== "/platform/simulation")) return null;
 
     const logout = () => {
         localStorage.removeItem("govtech_user");

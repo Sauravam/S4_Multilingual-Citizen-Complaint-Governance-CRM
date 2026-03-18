@@ -23,12 +23,13 @@ import "./platform.css";
 
 const SQL_NAV_ITEMS = [
   { href: "/platform/sql-editor", label: "SQL Editor", icon: Code2 },
-  { href: "#", label: "Queries", icon: ListFilter, disabled: true },
-  { href: "#", label: "Dashboards", icon: LayoutDashboard, disabled: true },
-  { href: "#", label: "Genie", icon: Sparkles, disabled: true },
-  { href: "#", label: "Alerts", icon: BellRing, disabled: true },
-  { href: "#", label: "Query History", icon: History, disabled: true },
-  { href: "#", label: "SQL Warehouses", icon: Server, disabled: true },
+  { href: "/platform/queries", label: "Queries", icon: ListFilter },
+  { href: "/platform/dashboards", label: "Dashboards", icon: LayoutDashboard },
+  { href: "/platform/genie", label: "Genie", icon: Sparkles },
+  { href: "/platform/alerts", label: "Alerts", icon: BellRing },
+  { href: "/platform/query-history", label: "Query History", icon: History },
+  { href: "/platform/sql-warehouses", label: "SQL Warehouses", icon: Server },
+  { href: "/platform/simulation", label: "Simulation", icon: BrainCircuit },
 ];
 
 const FUTURE_MODULES = [
@@ -61,12 +62,7 @@ export default function PlatformLayout({
           {SQL_NAV_ITEMS.map((item, idx) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
-            return item.disabled ? (
-              <div key={idx} className="gs-nav-item disabled" title={`${item.label} (Coming Soon)`}>
-                <div className="gs-nav-icon"><Icon size={16} /></div>
-                <span className="gs-nav-label">{item.label}</span>
-              </div>
-            ) : (
+            return (
               <Link key={idx} href={item.href} className={`gs-nav-item ${isActive ? "active" : ""}`}>
                 <div className="gs-nav-icon"><Icon size={16} /></div>
                 <span className="gs-nav-label">{item.label}</span>
