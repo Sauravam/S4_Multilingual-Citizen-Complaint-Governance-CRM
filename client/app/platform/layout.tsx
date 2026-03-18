@@ -29,7 +29,6 @@ const SQL_NAV_ITEMS = [
   { href: "/platform/alerts", label: "Alerts", icon: BellRing },
   { href: "/platform/query-history", label: "Query History", icon: History },
   { href: "/platform/sql-warehouses", label: "SQL Warehouses", icon: Server },
-  { href: "/platform/simulation", label: "Simulation", icon: BrainCircuit },
 ];
 
 const FUTURE_MODULES = [
